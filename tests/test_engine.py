@@ -151,7 +151,8 @@ def test_lookahead_checker():
         def prepare(self, d): d["x"] = d.c.rolling(10, center=True).mean(); d["y"] = d.c.shift(-1); return d
 
     assert check_lookahead(Good(), df) == []
-    assert check_lookahead(Bad(), df) == ["x", "y"]
+    bad = check_lookahead(Bad(), df)
+    assert len(bad) == 2 and "'x'" in bad[0] and "'y'" in bad[1]
 
 
 def test_resample_ohlc():

@@ -63,7 +63,7 @@ def _row(name, summ, base_net=None):
 
 def run(job: Job, daily_bars: pd.DataFrame | None = None, workers=None) -> dict:
     sc = scenarios(job)
-    res = run_many([j for _, j in sc], workers)
+    res = run_many([j if k == 0 else j.with_(summary_only=True) for k, (_, j) in enumerate(sc)], workers)
     base = res[0]
     base_net = base["summary"].get("net_pnl", 0.0)
     table = pd.DataFrame([_row(n, r["summary"], base_net) for (n, _), r in zip(sc, res)])
@@ -90,17 +90,13 @@ def run(job: Job, daily_bars: pd.DataFrame | None = None, workers=None) -> dict:
                             "win_rate_pct": round(float((x > 0).mean() * 100), 1) if len(x) else None,
                             "worst_trade": round(x.min(), 2) if len(x) else None})
         extra["named_periods"] = pd.DataFrame(per)
-        r0 = metrics.result_from_trades(t, base["days"], job.settings, job.inst)
-        dpnl = metrics.daily_equity(r0).diff().fillna(metrics.daily_equity(r0).iloc[0] - job.settings.capital)
-        dpnl.index = pd.to_datetime(dpnl.index)
-        m = dpnl.resample("ME").sum()
-        extra["worst_stretches"] = pd.DataFrame([
-            {"window": "worst calendar month", "net_pnl": round(m.min(), 2), "when": str(m.idxmin().date())[:7]},
-            {"window": "worst rolling 3 months", "net_pnl": round(m.rolling(3).sum().min(), 2), "when": f"ending {str(m.rolling(3).sum().idxmin().date())[:7]}"},
-            {"window": "worst rolling 12 months", "net_pnl": round(m.rolling(12).sum().min(), 2) if len(m) >= 12 else None,
-             "when": f"ending {str(m.rolling(12).sum().idxmin().date())[:7]}" if len(m) >= 12 else None},
-            {"window": "losing months", "net_pnl": None, "when": f"{int((m < 0).sum())} of {len(m)}"},
-        ])
+        daily = base.get("daily")
+        if daily is not None and len(daily):
+            dpnl = pd.Series(np.diff(np.concatenate([[daily.start_equity.iloc[0]], daily.equity.to_numpy()])),
+                             index=pd.to_datetime(daily.tday))
+            extra["worst_stretches"] = _stretches(dpnl)
+        else:
+            extra["worst_stretches"] = worst_stretches(t, base["days"], job.settings, job.inst)
         if daily_bars is not None and len(daily_bars):
             rng = (daily_bars.h - daily_bars.l) / daily_bars.c
             rng.index = pd.to_datetime(daily_bars.tday.to_numpy().astype("datetime64[D]"))
@@ -111,6 +107,30 @@ def run(job: Job, daily_bars: pd.DataFrame | None = None, workers=None) -> dict:
                 {"days": "most volatile 20% of days", "trades": len(a), "net_pnl": round(a.sum(), 2), "avg_trade": round(a.mean(), 2) if len(a) else None},
                 {"days": "other 80% of days", "trades": len(b), "net_pnl": round(b.sum(), 2), "avg_trade": round(b.mean(), 2) if len(b) else None}])
     return {"scenarios": table, **extra, "baseline_trades": t}
+
+
+def _stretches(dpnl: pd.Series) -> pd.DataFrame:
+    """Worst month / rolling 3 and 12 months from daily P&L. Windows longer than the data are reported as n/a."""
+    m = dpnl.resample("ME").sum()
+    rows = []
+    for label, w in (("worst calendar month", 1), ("worst rolling 3 months", 3), ("worst rolling 12 months", 12)):
+        if len(m) >= w:
+            r = m.rolling(w).sum() if w > 1 else m
+            rows.append({"window": label, "net_pnl": round(float(r.min()), 2),
+                         "when": (str(r.idxmin().date())[:7] if w == 1 else f"ending {str(r.idxmin().date())[:7]}")})
+        else:
+            rows.append({"window": label, "net_pnl": None, "when": f"n/a (only {len(m)} month(s) of data)"})
+    rows.append({"window": "losing months", "net_pnl": None, "when": f"{int((m < 0).sum())} of {len(m)}"})
+    return pd.DataFrame(rows)
+
+
+def worst_stretches(trades: pd.DataFrame, days, settings, inst) -> pd.DataFrame:
+    """Same as _stretches, from realized trade P&L (used when no equity curve is available)."""
+    r0 = metrics.result_from_trades(trades, days, settings, inst)
+    de = metrics.daily_equity(r0)
+    dpnl = de.diff().fillna(de.iloc[0] - settings.capital)
+    dpnl.index = pd.to_datetime(dpnl.index)
+    return _stretches(dpnl)
 
 
 def report(st: dict, out: Path, title: str) -> dict:

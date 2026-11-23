@@ -22,7 +22,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
-from engine import Settings, check_lookahead, data, get_instrument  # noqa: E402
+from engine import Settings, check_lookahead, data, get_instrument, metrics  # noqa: E402
 from engine import montecarlo, stress, sweep, walkforward  # noqa: E402
 from engine.data import _assert_not_data_path  # noqa: E402
 from engine.loader import load_strategy  # noqa: E402
@@ -62,27 +62,48 @@ def outdir(kind: str, strategy: str, sym: str) -> Path:
     return p
 
 
+DATASETS_FOR = {"NQ": {"NQ"}, "MNQ": {"NQ"}, "GC": {"GC"}, "MGC": {"GC"}, "XAUUSD": {"XAUUSD"},
+                 "NAS100": {"NAS100", "NAS100_RTH"}}
+
+
+def check_dataset(symbol: str, key: str):
+    """Refuse to price one market's data with another market's contract (e.g. NQ data as XAUUSD)."""
+    ok = DATASETS_FOR.get(symbol.upper(), {symbol.upper()})
+    if key.upper() not in ok:
+        raise SystemExit(f"dataset {key!r} does not belong to instrument {symbol!r}; allowed: {sorted(ok)}")
+
+
 def make_job(a, sym: str) -> tuple[Job, pd.DataFrame]:
     inst = get_instrument(sym)
     over = {k: v for k, v in (("commission", a.commission), ("slippage_ticks", a.slippage), ("spread", a.spread)) if v is not None}
     if over:
         inst = inst.with_costs(**over)
     key = a.data or inst.data_key
+    check_dataset(inst.name, key)
     df = data.load(key, a.start, a.end)
     job = Job(str(Path(a.strategy).resolve()), key, a.tf, inst, Settings(capital=a.capital), parse_sets(a.set),
               start=str(df.tday.iloc[0])[:10], end=str(df.tday.iloc[-1])[:10], warmup_days=a.warmup_days)
     return job, df
 
 
-def lookahead_gate(a, job: Job, df: pd.DataFrame) -> str:
+def lookahead_gate(a, job: Job, df: pd.DataFrame, extra_params: list[dict] | None = None) -> str:
+    """Look-ahead check (indicators AND on_bar trades, see core.check_lookahead) for the base parameters
+    and every parameter set that will be tested (up to 40, sampled evenly if there are more).
+    Runs on the most recent ~300k bars of the selected period."""
     cls = load_strategy(a.strategy)
-    bad = check_lookahead(cls(**job.params), data.resample(df.iloc[: min(len(df), 300_000 * a.tf)], a.tf))
-    if bad:
-        msg = f"FAILED: prepare() uses future data in columns {bad}"
-        if not a.force:
-            raise SystemExit(f"!! look-ahead check {msg}. Fix the strategy (or pass --force to run anyway).")
-        return msg
-    return "passed"
+    sets = [job.params] + [{**job.params, **p} for p in (extra_params or [])]
+    if len(sets) > 40:
+        sets = [sets[int(k)] for k in np.linspace(0, len(sets) - 1, 40)]
+    bars = data.resample(df, a.tf)
+    bars = bars.iloc[max(0, len(bars) - 300_000):]
+    for params in sets:
+        bad = check_lookahead(lambda p=params: cls(**p), bars, job.inst, job.settings)
+        if bad:
+            msg = f"FAILED for params {params}: " + "; ".join(bad)
+            if not a.force:
+                raise SystemExit(f"!! look-ahead check {msg}. Fix the strategy (or pass --force to run anyway).")
+            return msg
+    return f"passed ({len(sets)} parameter set{'s' if len(sets) > 1 else ''})"
 
 
 def trading_days(df):
@@ -92,10 +113,10 @@ def trading_days(df):
 # ------------------------------------------------------------------------------------ commands
 def cmd_sweep(a, sym):
     job, df = make_job(a, sym)
-    la = lookahead_gate(a, job, df)
     grid = parse_grid(a.grid)
     if not grid:
         raise SystemExit("--grid is required, e.g. --grid rr=1.5,2,3 or_minutes=5,15,30")
+    la = lookahead_gate(a, job, df, sweep.expand_grid(grid))
     out = outdir("sweep", a.strategy, sym)
     print(f"parameter test: {len(sweep.expand_grid(grid))} combinations on {sym}")
     res = sweep.run_sweep(job, grid, a.objective, a.min_trades, a.workers)
@@ -107,10 +128,10 @@ def cmd_sweep(a, sym):
 
 def cmd_walkforward(a, sym):
     job, df = make_job(a, sym)
-    la = lookahead_gate(a, job, df)
     grid = parse_grid(a.grid)
     if not grid:
         raise SystemExit("--grid is required for walk-forward")
+    la = lookahead_gate(a, job, df, sweep.expand_grid(grid))
     out = outdir("walkforward", a.strategy, sym)
     wf = walkforward.run(job, grid, trading_days(df), a.is_months, a.oos_months, a.anchored, a.objective,
                          a.min_trades, a.select, a.workers)
@@ -120,11 +141,13 @@ def cmd_walkforward(a, sym):
     return info, wf, out
 
 
-def _mc_from_trades(a, trades: pd.DataFrame, days, capital, out: Path, title: str):
+def _mc_from_trades(a, trades: pd.DataFrame, daily_equity, capital, out: Path, title: str):
+    """daily_equity: equity at the end of EVERY trading day (flat days included), needed for --method daily."""
     if a.method == "daily":
-        dd = trades.groupby(pd.to_datetime(trades.exit_tday)).pnl.sum()
-        dd = dd.reindex(pd.to_datetime(days), fill_value=0.0) if days is not None else dd
-        items = dd.to_numpy()
+        if daily_equity is None or len(daily_equity) < 2:
+            raise SystemExit("daily Monte Carlo needs the daily equity file (days without trades cannot be "
+                             "recovered from a trade list). Re-run the backtest/walk-forward to create it.")
+        items = np.diff(np.concatenate([[capital], np.asarray(daily_equity, dtype=float)]))
     else:
         items = trades.pnl.to_numpy()
     mc = montecarlo.simulate(items, capital, a.sims, a.method, a.seed, a.block, a.skip, a.haircut, a.ruin)
@@ -137,22 +160,29 @@ def cmd_montecarlo(a, sym=None):
     if a.from_dir:
         src = Path(a.from_dir)
         f = src / "walkforward_oos_trades.csv" if (src / "walkforward_oos_trades.csv").exists() else src / "trades.csv"
-        trades = pd.read_csv(f)
+        try:
+            trades = pd.read_csv(f)
+        except pd.errors.EmptyDataError:
+            trades = pd.DataFrame()
+        if len(trades) < 2:
+            raise SystemExit(f"{f} has {len(trades)} trades: nothing to simulate")
         out = src / f"montecarlo_{a.method}"
         summ = src / "summary.json"
         cap = json.loads(summ.read_text()).get("capital", a.capital) if summ.exists() else a.capital
-        days = None
-        if a.method == "daily":
-            de = src / "daily_equity.csv"
-            days = pd.read_csv(de).iloc[:, 0].to_numpy() if de.exists() else None
-        return _mc_from_trades(a, trades, days, cap, out, f"{src.name} ({f.name})")
+        eq = None
+        for name in ("walkforward_oos_daily_equity.csv", "daily_equity.csv"):
+            if (src / name).exists():
+                eq = pd.read_csv(src / name)["equity"].to_numpy()
+                break
+        return _mc_from_trades(a, trades, eq, cap, out, f"{src.name} ({f.name})")
     job, df = make_job(a, sym)
     lookahead_gate(a, job, df)
     from engine.parallel import run_job
     r = run_job(job)
     out = outdir("montecarlo", a.strategy, sym)
     r["trades"].to_csv(out / "trades.csv", index=False)
-    return _mc_from_trades(a, r["trades"], r["days"], a.capital, out, f"{Path(a.strategy).stem} on {sym}")
+    eq = r["daily"].equity.to_numpy() if r["daily"] is not None else None
+    return _mc_from_trades(a, r["trades"], eq, a.capital, out, f"{Path(a.strategy).stem} on {sym}")
 
 
 def cmd_stress(a, sym, params=None, out=None):
@@ -182,7 +212,7 @@ def cmd_all(a, sym):
         if len(oos) >= 2:
             for m in ("bootstrap", "shuffle"):
                 a.method = m
-                mc_info[m] = _mc_from_trades(a, oos, wf["oos_result"]["equity"].tday, a.capital, root / f"montecarlo_{m}",
+                mc_info[m] = _mc_from_trades(a, oos, metrics.daily_equity(wf["oos_result"]).to_numpy(), a.capital, root / f"montecarlo_{m}",
                                              f"{Path(a.strategy).stem} on {sym}: walk-forward OOS trades, {m}")
         params = sw.get("plateau_choice") or sw.get("best") or {}
         st_info, st = cmd_stress(a, sym, params, root / "stress")
@@ -199,7 +229,7 @@ def checklist(a, sym, sw, wf, mc, st) -> list[tuple[str, str, str]]:
     c = []
     def add(ok, name, detail, warn=False):
         c.append(("PASS" if ok else ("WARN" if warn else "FAIL"), name, detail))
-    add(sw.get("lookahead_check") == "passed", "No look-ahead in indicators", str(sw.get("lookahead_check")))
+    add(str(sw.get("lookahead_check", "")).startswith("passed"), "No look-ahead (indicators and trade decisions)", str(sw.get("lookahead_check")))
     pp = sw.get("profitable_pct")
     add(pp is not None and pp >= 60, "Most parameter sets are profitable (>= 60%)", f"{pp}% of combinations with enough trades", warn=pp is not None and pp >= 40)
     bs = sw.get("best_score")
@@ -207,7 +237,7 @@ def checklist(a, sym, sw, wf, mc, st) -> list[tuple[str, str, str]]:
         add(False, "Best setting is on a plateau, not a spike", f"not applicable: best score {bs} is not positive")
     else:
         add(not sw.get("best_is_isolated_spike", True), "Best setting is on a plateau, not a spike",
-            f"best score {bs}, its neighbourhood {sw.get('best_neighbourhood_score')}")
+            f"best score {bs:.3f}, its neighbourhood {sw.get('best_neighbourhood_score', float('nan')):.3f}")
     on, opf = wf.get("oos_net_pnl"), wf.get("oos_profit_factor")
     add(on is not None and on > 0, "Walk-forward out-of-sample is profitable", f"OOS net {on}")
     add(opf is not None and opf >= 1.1, "Walk-forward OOS profit factor >= 1.1", f"{opf}", warn=opf is not None and opf >= 1.0)

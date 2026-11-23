@@ -26,13 +26,18 @@ Every main series passed these checks: **0 duplicate timestamps, 0 out-of-order 
 - One stitched "front month by volume" series (`GC.v.0`), ~1,120 bars per day and ~310 trading days per year every year.
 - **The `bars_1m_by_contract_2016_to_2025/` folder is the same continuous series**, not separate contracts. It has the same 3,486,356 rows, labelled `GC.v.0`. That means the price of the *other* contract at roll time isn't available.
 - **50 contract switches.** Prices are **not** adjusted, so each switch shows an artificial jump of +$0 to **+$57.70** ($5,770 per GC contract). These have grown since 2023 because of higher interest rates. A backtest on the raw series would book these jumps as profit or loss, so the engine back-adjusts them.
-- About 12 of the 50 switches happen at the Sunday open, so the measured jump includes the weekend price move as well as the roll. That makes the adjustment slightly approximate at those 12 points. It affects indicators across the roll only; trades that don't span a roll are unaffected.
+- **How the roll spread is measured** (updated after the code audit). The jump at a switch = roll spread + the market's own move across the gap. The move is kept, not erased:
+  - **22 rolls (2021–2025):** jump minus spot gold's move over the same minutes.
+  - **20 rolls:** gap of under 4 hours, so the move is assumed 0. The error is gold's move during the pause.
+  - **8 weekend rolls before 2021:** spread estimated from the 4 nearest measured rolls (spread/price ratio).
+
+  Each roll's method is in `cache/GC_rolls.csv`.
 - Gaps: normal daily 1-hour break, weekends, holidays. Real exchange events also show up: CME outage on 2025-11-28 (10.7 h), short sessions on Christmas Eve and Thanksgiving. One unexplained gap: **2020-06-30 14:10 → 2020-07-01 00:00 (9.8 h) is missing.**
 - 3.2% of bars have high = low (quiet overnight minutes). That's normal.
 
 ## NQ: CME E-mini Nasdaq-100 futures (Databento)
 - 1-min front-contract bars, ~1,135 per day. **22 rolls**, about 4 days before each quarterly expiry (Mon 22:00/23:00 UTC).
-- Rollover gaps grew from about −9 pts (2021) to **+307 pts** (2026), or $6,140 per contract. I measured the true roll spread *at the same minute* from `bars_1m_all_contracts`, and that's what the engine uses to back-adjust. It's exact.
+- Rollover gaps grew from about −9 pts (2021) to **+307 pts** (2026), or $6,140 per contract. The engine back-adjusts with the spread between both contracts' **open of the roll minute** (from `bars_1m_all_contracts`), the moment the switch happens. All 22 rolls had both contracts trading that minute.
 - The two `contract_roll_adjust_*` files hold cumulative adjustments in ticks from an earlier build. They differ slightly from the same-minute measurement, so the engine doesn't use them.
 - **Missing data: 2026-06-17 03:03 → 22:00 UTC (~19 h, almost a whole session).** It's missing from the ticks and 1-second bars too. That's where the two tick files were stitched together.
 - Short sessions are present and correct: Jan 9 2025 (national day of mourning), holidays.

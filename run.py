@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from engine import Engine, Settings, check_lookahead, data, get_instrument, report  # noqa: E402
 from engine.loader import load_strategy  # noqa: E402
+from robust import check_dataset  # noqa: E402
 
 
 def parse_sets(items):
@@ -52,14 +53,16 @@ def main():
         if over:
             inst = inst.with_costs(**over)
         t0 = time.time()
-        df = data.resample(data.load(a.data or inst.data_key, a.start, a.end), a.tf)
+        key = a.data or inst.data_key
+        check_dataset(inst.name, key)
+        df = data.resample(data.load(key, a.start, a.end), a.tf)
         strat = cls(**params)
         la = "skipped"
         if not a.no_lookahead_check:
-            bad = check_lookahead(cls(**params), df.iloc[: min(len(df), 300_000)])
-            la = "passed" if not bad else f"FAILED: columns use future data -> {bad}"
+            bad = check_lookahead(lambda: cls(**params), df.iloc[max(0, len(df) - 300_000):], inst, Settings(capital=a.capital))
+            la = "passed" if not bad else "FAILED: " + "; ".join(bad)
             if bad:
-                print(f"!! LOOKAHEAD in prepare(): {bad}  (results below are not trustworthy)")
+                print(f"!! LOOK-AHEAD: {la}  (results below are not trustworthy)")
         res = Engine(df, inst, strat, Settings(capital=a.capital)).run()
         out = report.save(res, Path(a.strategy).stem, strat.p, extra={"timeframe_min": a.tf, "lookahead_check": la,
                                                                       "costs": {"commission": inst.commission, "slippage_ticks": inst.slippage_ticks,

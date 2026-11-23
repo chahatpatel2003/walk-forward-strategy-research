@@ -11,9 +11,44 @@ def _max_streak(mask: np.ndarray) -> int:
     return best
 
 
-def daily_equity(res: dict) -> pd.Series:
+def _bars(res: dict) -> pd.DataFrame:
+    """The result's per-bar equity (tday, equity_open, equity_low, equity)."""
     eq = res["equity"]
-    return eq.groupby("tday").equity.last()
+    out = eq[["tday", "equity"]].copy()
+    out["equity_open"] = eq["equity_open"] if "equity_open" in eq else eq["equity"]
+    out["equity_low"] = eq["equity_low"] if "equity_low" in eq else eq["equity"]
+    return out
+
+
+def drawdown_walk(bars: pd.DataFrame, capital: float) -> tuple[np.ndarray, np.ndarray]:
+    """Exact drawdown, walking every bar in the order its prices are known to occur:
+    open -> worst price inside the bar -> close. A bar's worst price is never used as a peak, and each low
+    is measured from the highest open/close seen BEFORE it (so a later recovery can't be the peak).
+    Returns per bar: worst drawdown in $ and in % of the preceding peak."""
+    o = bars["equity_open"].to_numpy(dtype=float)
+    lo = bars["equity_low"].to_numpy(dtype=float)
+    c = bars["equity"].to_numpy(dtype=float)
+    lo = np.minimum(lo, np.minimum(o, c))
+    seq = np.column_stack([o, lo, c]).ravel()
+    can_peak = seq.copy()
+    can_peak[1::3] = -np.inf
+    peak = np.maximum.accumulate(np.concatenate([[capital], can_peak]))[1:]
+    dd = (seq - peak).reshape(-1, 3)
+    pct = ((seq - peak) / peak).reshape(-1, 3) * 100
+    return dd.min(axis=1), pct.min(axis=1)
+
+
+def daily_equity(res: dict) -> pd.Series:
+    """Equity at each trading day's last bar."""
+    b = _bars(res)
+    return b.groupby("tday").equity.last()
+
+
+def daily_drawdown(res: dict) -> pd.Series:
+    """Worst drawdown ($) reached on each trading day (from the exact bar walk)."""
+    b = _bars(res)
+    dd, _ = drawdown_walk(b, res["settings"].capital)
+    return pd.Series(dd).groupby(b.tday.to_numpy()).min()
 
 
 def drawdown(series: pd.Series) -> pd.Series:
@@ -22,21 +57,25 @@ def drawdown(series: pd.Series) -> pd.Series:
 
 def summarize(res: dict) -> dict:
     t, cap = res["trades"], res["settings"].capital
-    de = daily_equity(res)
+    bars = _bars(res)
+    de = bars.groupby("tday").equity.last()
     dpnl = de.diff().fillna(de.iloc[0] - cap) if len(de) else pd.Series(dtype=float)
-    dd = drawdown(pd.concat([pd.Series([cap]), de.reset_index(drop=True)]))
+    if len(bars):
+        dd_bar, pct_bar = drawdown_walk(bars, cap)
+        dd = pd.Series(dd_bar).groupby(bars.tday.to_numpy()).min()
+    else:
+        dd_bar = pct_bar = np.array([0.0])
+        dd = pd.Series(dtype=float)
     out = {"instrument": res["instrument"].name, "start": str(de.index.min())[:10] if len(de) else None,
            "end": str(de.index.max())[:10] if len(de) else None, "capital": cap,
-           "trading_days": int(len(de)), "trades": int(len(t)), "skipped_orders": res["skipped"]}
+           "trading_days": int(len(de)), "trades": int(len(t)), "skipped_orders": res["skipped"],
+           "notes": res.get("notes", {})}
     if len(t) == 0:
         return out
-    wins, losses = t[t.pnl > 0], t[t.pnl <= 0]
     years = max((pd.Timestamp(out["end"]) - pd.Timestamp(out["start"])).days / 365.25, 1e-9)
-    gp, gl = wins.pnl.sum(), -losses.pnl.sum()
-    peak = pd.concat([pd.Series([cap]), de.reset_index(drop=True)]).cummax()
-    dd_pct = (dd / peak).min() * 100
-    # longest time under water (trading days)
     under = (dd.values < -1e-9)
+    wins, losses = t[t.pnl > 0], t[t.pnl <= 0]
+    gp, gl = wins.pnl.sum(), -losses.pnl.sum()
     out.update({
         "net_pnl": round(t.pnl.sum(), 2),
         "return_pct": round(t.pnl.sum() / cap * 100, 2),
@@ -48,8 +87,8 @@ def summarize(res: dict) -> dict:
         "payoff_ratio": round(wins.pnl.mean() / -losses.pnl.mean(), 3) if len(wins) and len(losses) and losses.pnl.mean() < 0 else None,
         "expectancy_per_trade": round(t.pnl.mean(), 2),
         "avg_r": round(t.r.mean(), 3) if t.r.notna().any() else None,
-        "max_drawdown_usd": round(dd.min(), 2),
-        "max_drawdown_pct": round(dd_pct, 2),
+        "max_drawdown_usd": round(float(dd_bar.min()), 2),
+        "max_drawdown_pct": round(float(pct_bar.min()), 2),
         "longest_drawdown_days": int(_max_streak(under)),
         "sharpe_daily_ann": round(dpnl.mean() / dpnl.std() * np.sqrt(252), 3) if dpnl.std() > 0 else None,
         "best_day": round(dpnl.max(), 2), "worst_day": round(dpnl.min(), 2),
@@ -73,8 +112,8 @@ def by_year(res: dict) -> pd.DataFrame:
     if len(t) == 0:
         return pd.DataFrame()
     t = t.assign(year=pd.to_datetime(t.exit_tday).dt.year)
-    de = daily_equity(res)
-    dd = de.groupby(pd.to_datetime(de.index).year).apply(lambda s: (s - s.cummax()).min())
+    dd_day = daily_drawdown(res)
+    dd = dd_day.groupby(pd.to_datetime(dd_day.index).year).min()
     g = t.groupby("year")
     out = pd.DataFrame({
         "trades": g.size(), "net_pnl": g.pnl.sum().round(2), "win_rate_pct": (g.pnl.apply(lambda x: (x > 0).mean()) * 100).round(1),
@@ -93,16 +132,18 @@ def by_month(res: dict) -> pd.DataFrame:
 
 
 def result_from_trades(trades: pd.DataFrame, tdays, settings, inst, skipped=None) -> dict:
-    """Build a result dict from a trade list alone (used for walk-forward windows and stitched
-    out-of-sample results). Equity = capital + realized P&L booked on each trade's exit day,
-    over every trading day in `tdays` (days without trades count as 0, which matters for Sharpe)."""
+    """Build a result dict from a trade list alone, for when no equity curve exists (e.g. Monte Carlo
+    from a saved trade file). Equity = capital + realized P&L booked on each trade's exit day, over every
+    trading day in `tdays` (days without trades count as 0). Drawdown inside a trade is NOT visible here;
+    backtests and robustness windows use the engine's per-bar equity instead."""
     tdays = pd.DatetimeIndex(pd.to_datetime(np.asarray(tdays))).unique().sort_values()
     if len(trades):
         daily = trades.groupby(pd.to_datetime(trades.exit_tday)).pnl.sum()
         daily = daily.reindex(tdays.union(daily.index), fill_value=0.0)
     else:
         daily = pd.Series(0.0, index=tdays)
-    eq = pd.DataFrame({"tday": daily.index.values.astype("datetime64[D]"), "equity": settings.capital + daily.cumsum().values})
+    e = settings.capital + daily.cumsum().values
+    eq = pd.DataFrame({"tday": daily.index.values.astype("datetime64[D]"), "equity_open": e, "equity_low": e, "equity": e})
     return {"trades": trades.reset_index(drop=True), "equity": eq, "skipped": skipped or {}, "settings": settings, "instrument": inst}
 
 
@@ -126,3 +167,29 @@ def score(summary: dict, objective: str = "sharpe", min_trades: int = 30) -> flo
     if v is None or v == float("inf"):
         return float("nan")
     return float(v)
+
+
+def result_from_bars(trades: pd.DataFrame, bars: pd.DataFrame, settings, inst, skipped=None, notes=None) -> dict:
+    """Result from a window's per-bar equity (tday, equity_open, equity_low, equity)."""
+    eq = bars.reset_index(drop=True)[["tday", "equity_open", "equity_low", "equity"]].copy()
+    eq["tday"] = eq.tday.to_numpy().astype("datetime64[D]")
+    return {"trades": trades.reset_index(drop=True), "equity": eq, "skipped": skipped or {}, "notes": notes or {},
+            "settings": settings, "instrument": inst}
+
+
+def stitch_bars(parts: list[pd.DataFrame], capital: float) -> pd.DataFrame:
+    """Join consecutive windows' per-bar equity into one curve: each window continues from where the previous
+    one ended. Each part has tday, equity_open, equity_low, equity and start_equity (equity before its first bar)."""
+    out, level = [], capital
+    for p in parts:
+        if p is None or not len(p):
+            continue
+        q = p.copy()
+        shift = level - q.start_equity.iloc[0]
+        for c in ("equity_open", "equity_low", "equity"):
+            q[c] = q[c] + shift
+        level = q.equity.iloc[-1]
+        out.append(q[["tday", "equity_open", "equity_low", "equity"]])
+    if not out:
+        return pd.DataFrame({"tday": np.array([], dtype="datetime64[D]"), "equity_open": [], "equity_low": [], "equity": []})
+    return pd.concat(out, ignore_index=True)

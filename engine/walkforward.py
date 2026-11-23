@@ -17,6 +17,7 @@ Indicator warm-up: each OOS run loads `warmup_days` of earlier (already past) da
 ready, but only trades entered inside the OOS window count.
 """
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import matplotlib
@@ -29,25 +30,23 @@ from . import metrics, sweep
 from .parallel import Job, run_many
 
 
-def _add_months(d: pd.Timestamp, m: int) -> pd.Timestamp:
-    return d + pd.DateOffset(months=m)
-
-
 def make_folds(tdays, is_months: int, oos_months: int, anchored: bool = False) -> list[dict]:
-    """Fold boundaries as ISO dates (inclusive). OOS windows are back-to-back and never overlap IS."""
+    """Fold boundaries as ISO dates (inclusive), snapped to trading days.
+    All boundaries are whole calendar months counted from the first month of the data, so consecutive
+    out-of-sample windows join with no gap and no overlap, and in-sample always ends before its OOS."""
     tdays = pd.DatetimeIndex(pd.to_datetime(np.asarray(tdays))).unique().sort_values()
     first, last = tdays[0], tdays[-1]
+    m0 = pd.Timestamp(first.year, first.month, 1)
+    edge = lambda k: m0 + pd.DateOffset(months=k)          # noqa: E731  (start of month k)
     folds, k = [], 0
     while True:
-        is_start = first if anchored else _add_months(first, k * oos_months)
-        oos_start = _add_months(first, is_months + k * oos_months)
+        oos_start = edge(is_months + k * oos_months)
         if oos_start > last:
             break
-        is_end = oos_start - pd.Timedelta(days=1)
-        oos_end = min(_add_months(oos_start, oos_months) - pd.Timedelta(days=1), last)
-        # snap to real trading days
-        is_days = tdays[(tdays >= is_start) & (tdays <= is_end)]
-        oos_days = tdays[(tdays >= oos_start) & (tdays <= oos_end)]
+        oos_next = edge(is_months + (k + 1) * oos_months)
+        is_start = first if anchored or k == 0 else edge(k * oos_months)
+        is_days = tdays[(tdays >= is_start) & (tdays < oos_start)]
+        oos_days = tdays[(tdays >= oos_start) & (tdays < oos_next)]
         if len(is_days) and len(oos_days):
             folds.append({"fold": len(folds) + 1,
                           "is_start": str(is_days[0].date()), "is_end": str(is_days[-1].date()),
@@ -63,12 +62,12 @@ def run(base: Job, grid: dict, tdays, is_months=24, oos_months=6, anchored=False
     if not folds:
         raise SystemExit("not enough data for even one fold: lower --is-months / --oos-months")
     combos = sweep.expand_grid(grid)
-    # 1. optimise every fold's in-sample window (all folds at once, in parallel)
-    jobs = [base.with_(params={**base.params, **c}, start=f["is_start"], end=f["is_end"], tag={"fold": f["fold"], **c})
+    # 1. optimise every fold's in-sample window (all folds at once, in parallel; summaries only)
+    jobs = [base.with_(params={**base.params, **c}, start=f["is_start"], end=f["is_end"], summary_only=True,
+                       tag={"fold": f["fold"], **c})
             for f in folds for c in combos]
     print(f"walk-forward: {len(folds)} folds x {len(combos)} parameter sets = {len(jobs)} in-sample runs")
     is_res = run_many(jobs, workers)
-    chosen = []
     for f in folds:
         rows = []
         for c, r in zip(combos, [x for x in is_res if x["tag"]["fold"] == f["fold"]]):
@@ -82,25 +81,27 @@ def run(base: Job, grid: dict, tdays, is_months=24, oos_months=6, anchored=False
         if p is not None:
             row = df[np.logical_and.reduce([df[k] == v for k, v in p.items()])].iloc[0]
             f["is_score"], f["is_net_pnl"], f["is_trades"] = float(row.score), float(row.net_pnl), int(row.trades)
-        chosen.append(p)
-    # 2. trade the chosen parameters on each out-of-sample window
-    oos_jobs = [base.with_(params={**base.params, **p}, start=f["oos_start"], end=f["oos_end"], tag={"fold": f["fold"]})
-                for f, p in zip(folds, chosen) if p is not None]
-    print(f"walk-forward: {len(oos_jobs)} out-of-sample runs")
-    oos_res = run_many(oos_jobs, workers)
-    trades, days = [], []
-    for r in oos_res:
-        f = folds[r["tag"]["fold"] - 1]
+    # 2. trade each fold's chosen parameters on its out-of-sample window, IN ORDER, carrying the
+    #    account balance forward (so %-of-equity sizing compounds like one continuous account)
+    todo = [f for f in folds if f.get("chosen") is not None]
+    print(f"walk-forward: {len(todo)} out-of-sample runs" + ("" if todo else " (no fold had a valid parameter set)"))
+    trades, parts, capital = [], [], base.settings.capital
+    for f in todo:
+        job = base.with_(params={**base.params, **f["chosen"]}, start=f["oos_start"], end=f["oos_end"],
+                         settings=replace(base.settings, capital=capital), tag={"fold": f["fold"]})
+        r = run_many([job], 1, progress=False)[0]
         s = r["summary"]
         f.update({"oos_trades": s.get("trades", 0), "oos_net_pnl": s.get("net_pnl", 0.0),
                   "oos_profit_factor": s.get("profit_factor"), "oos_win_rate_pct": s.get("win_rate_pct"),
                   "oos_max_dd_usd": s.get("max_drawdown_usd"), "oos_score": metrics.score(s, objective, 1)})
         if len(r["trades"]):
             trades.append(r["trades"].assign(fold=f["fold"]))
-        days.append(r["days"])
+        if r.get("bars") is not None and len(r["bars"]):
+            parts.append(r["bars"])
+            capital = float(r["bars"].equity.iloc[-1])
     trades = pd.concat(trades, ignore_index=True) if trades else pd.DataFrame()
-    days = np.unique(np.concatenate(days)) if days else np.array([], dtype="datetime64[D]")
-    stitched = metrics.result_from_trades(trades, days, base.settings, base.inst)
+    bars = metrics.stitch_bars(parts, base.settings.capital)
+    stitched = metrics.result_from_bars(trades, bars, base.settings, base.inst)
     return {"folds": folds, "oos_result": stitched, "grid": grid, "objective": objective, "select": select,
             "is_months": is_months, "oos_months": oos_months, "anchored": anchored}
 
@@ -112,22 +113,27 @@ def report(wf: dict, out: Path, title: str) -> dict:
     res = wf["oos_result"]
     summ = metrics.summarize(res) if len(res["equity"]) else {}
     res["trades"].to_csv(out / "walkforward_oos_trades.csv", index=False)
+    de = metrics.daily_equity(res)
+    pd.DataFrame({"tday": de.index, "equity": de.values}).to_csv(out / "walkforward_oos_daily_equity.csv", index=False)
     # Walk-forward efficiency: OOS profit per day vs the profit per day the optimiser found in-sample.
     have = folds.dropna(subset=["is_net_pnl"]) if "is_net_pnl" in folds else folds.iloc[0:0]
+    if "oos_net_pnl" in have:
+        have = have.dropna(subset=["oos_net_pnl"])
     is_per_day = (have.is_net_pnl / have.is_days).mean() if len(have) else np.nan
     oos_per_day = (have.oos_net_pnl / have.oos_days).mean() if len(have) and "oos_net_pnl" in have else np.nan
     eff = oos_per_day / is_per_day if is_per_day and is_per_day > 0 else np.nan
-    chosen = [json.dumps(c, sort_keys=True) for c in folds.chosen if c is not None]
+    chosen = [json.dumps(c, sort_keys=True) for c in folds.chosen if c is not None] if "chosen" in folds else []
     info = {"folds": len(folds), "mode": "anchored" if wf["anchored"] else "rolling",
             "in_sample_months": wf["is_months"], "out_of_sample_months": wf["oos_months"],
             "objective": wf["objective"], "selection": wf["select"],
-            "oos_period": f"{folds.oos_start.iloc[0]} -> {folds.oos_end.iloc[-1]}" if len(folds) else None,
+            "oos_period": f"{have.oos_start.iloc[0]} -> {have.oos_end.iloc[-1]}" if len(have) else None,
             "oos_net_pnl": summ.get("net_pnl"), "oos_trades": summ.get("trades"),
             "oos_profit_factor": summ.get("profit_factor"), "oos_sharpe": summ.get("sharpe_daily_ann"),
             "oos_max_drawdown_usd": summ.get("max_drawdown_usd"), "oos_win_rate_pct": summ.get("win_rate_pct"),
             "profitable_oos_folds_pct": round(float((have.oos_net_pnl > 0).mean() * 100), 1) if len(have) and "oos_net_pnl" in have else None,
             "walk_forward_efficiency": round(float(eff), 3) if eff == eff else None,
-            "distinct_parameter_sets_chosen": len(set(chosen)), "folds_without_valid_parameters": int(folds.chosen.isna().sum())}
+            "distinct_parameter_sets_chosen": len(set(chosen)),
+            "folds_without_valid_parameters": int(folds.chosen.isna().sum()) if "chosen" in folds else len(folds)}
     (out / "walkforward_summary.json").write_text(json.dumps({**info, "oos_full_summary": summ}, indent=2, default=str))
     show = [c for c in ["fold", "is_start", "is_end", "oos_start", "oos_end", "chosen", "is_trades", "is_net_pnl",
                         "oos_trades", "oos_net_pnl", "oos_profit_factor", "oos_max_dd_usd"] if c in folds]

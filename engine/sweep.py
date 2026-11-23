@@ -49,7 +49,7 @@ def plateau(df: pd.DataFrame, grid: dict, col: str = "score") -> pd.Series:
 
 def run_sweep(base: Job, grid: dict, objective="sharpe", min_trades=30, workers=None) -> pd.DataFrame:
     combos = expand_grid(grid)
-    jobs = [base.with_(params={**base.params, **c}, tag=c) for c in combos]
+    jobs = [base.with_(params={**base.params, **c}, tag=c, summary_only=True) for c in combos]
     res = run_many(jobs, workers)
     rows = []
     for c, r in zip(combos, res):

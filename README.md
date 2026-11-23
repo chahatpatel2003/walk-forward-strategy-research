@@ -69,15 +69,25 @@ For reviewers: see **REVIEW_GUIDE.md** (invariants, where they're tested, delibe
 
 ## How fills work (and why results aren't flattering)
 - A strategy decides at a bar's **close**. Its orders fill from the **next** bar. It can't trade on a price it hasn't seen.
-- **Market** orders fill at the next open plus slippage (default 1 tick per side on futures).
-- **Stop** orders fill at the stop price, or at the open if price gaps past it, plus slippage.
-- **Limit** orders must trade *through* the price by 1 tick on futures (a touch isn't a fill).
-- If a bar hits **both stop-loss and target**, the stop-loss is assumed to have come first. Same if the stop-loss is inside the bar the entry filled on.
-- **XAUUSD** uses the real Dukascopy bid/ask: buys at the ask, sells at the bid, stops trigger on the right side of the quote.
-  - **NAS100** has mid prices only, so it charges a fixed spread (1.2 pts by default).
+- **Inside each bar, things happen in time order:**
+  1. At the open: pending close requests, gaps through stops/targets, and market orders.
+  2. Then the rest of the bar.
+
+  If a position is stopped out inside a bar, no new trade can fill in that same bar.
+- **Market** orders fill at the open plus slippage (default 1 tick per side on futures). **Stop** orders fill at the stop price, or at the open on a gap, plus slippage. A stop never fills better than the quotes in the bar.
+- **Limit orders and targets** must trade *through* the price by 1 tick on futures, at the open too.
+- **Same-bar ambiguity is resolved pessimistically:**
+  - If a bar hits both stop-loss and target, the stop-loss wins.
+  - If both sides of an OCO trigger in one bar, the side nearest the open is taken; these bars are counted in `notes`.
+  - A target on the entry bar only counts if price must have reached it *after* the entry.
+- **Bid/ask:**
+  - XAUUSD uses the real Dukascopy bid/ask: buys at the ask, sells at the bid.
+  - NAS100 charges a fixed 1.2-pt spread.
   - Futures trade at the traded price plus commission and slippage.
-- **Futures rolls**: prices are back-adjusted, so roll jumps don't appear as fake profit. A position held across a roll is charged the cost of rolling. Roll details are in `cache/NQ_rolls.csv` and `cache/GC_rolls.csv`.
-- **Look-ahead check**: every run re-computes your indicators on cut-off copies of the data. If any value changes when future bars are removed, the run is flagged `lookahead_check FAILED`.
+- **Futures rolls:** prices are back-adjusted with the roll spread measured at the moment of the switch, and a held position pays the cost of rolling. Details are in `cache/*_rolls.csv`. Unadjusted prices are in the `raw_o/h/l/c` columns.
+- **Drawdown** walks every bar in time order (open, worst price, close) and measures each low from the peak before it. If a target is hit inside a bar, that bar's adverse move is assumed to have come first (pessimistic).
+- **Resampled futures bars** are split at a contract switch, so on roll days there's one shorter extra bar and the roll is charged at the exact switch time.
+- **Look-ahead check:** every run checks that indicators and trade decisions don't change when future data is removed. It also replays the strategy with data that errors if a later bar is read. `robust.py` checks every parameter set it will test. A strategy's `prepare()` may only add columns; changing prices is refused.
 
 ## Writing a strategy
 Copy `strategies/orb.py`. A strategy has two methods:
@@ -114,10 +124,12 @@ Data columns: `o h l c v` (back-adjusted), `ny_min` (New York minute of day, 09:
 
 **Reading state:** `b.flat`, `b.position`, `b.equity`, `b.bars_in_trade()`.
 
-Entries only fill while flat. To reverse, call `close()` and place the new entry on the same bar. When one entry fills, the other pending entries are cancelled (one-cancels-other).
+Entries only fill while flat. To reverse, call `close()` and place the new entry on the same bar. When one entry fills, the other pending entries are cancelled (one-cancels-other). Calling `close()` again while a close is pending changes nothing. Sizing options: `qty=`, `risk_usd=`, `risk_pct=` or `notional_usd=`; futures are rounded down to whole contracts.
+
+Exchange calendar: `from engine.calendar import session_close_minute, holidays, trading_days` (holidays and 13:00 closes, published in advance).
 
 ## Known limits
 - One position at a time per strategy (no pyramiding or scaling in yet).
 - Ambiguous bars (both stop and target inside one bar) are resolved pessimistically. NQ has 1-second bars that could settle these exactly; that's not wired in yet.
-- About 13 of GC's 50 roll adjustments are approximate (the roll happened at the Sunday open; see DATA_REPORT.md).
+- 8 of GC's 50 roll adjustments are estimates (weekend rolls before 2021; see DATA_REPORT.md).
 - No news-calendar filter (no calendar in DATA).

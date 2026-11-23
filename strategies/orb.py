@@ -2,14 +2,19 @@
 
 Rules
   - Opening range = high/low of the first `or_minutes` after 09:30 New York time.
+    `or_minutes` and 09:30 must line up with the bar size (e.g. 15-minute range on 1, 5 or 15-minute bars).
   - When the range is complete, place a buy stop at the range high and a sell stop at the range low
     (one-cancels-other: when one fills, the other is cancelled). One trade per day.
   - Stop-loss = the other side of the range. Take-profit = `rr` x the risk.
-  - Unfilled orders are cancelled at `last_entry`. Any open trade is closed at `flat_at`.
+  - Unfilled orders are cancelled at `last_entry`.
+  - Any open trade is closed at `flat_at`, or 5 minutes before an early (13:00) close on half days.
+    If a position is somehow still open when a new trading day starts (missing bars), it is closed at once.
   - Size: risk `risk_usd` dollars per trade (rounded down to whole contracts / 0.01 lots).
 """
 import numpy as np
+
 from engine import Strategy
+from engine.calendar import session_close_minute
 
 
 class ORB(Strategy):
@@ -18,7 +23,12 @@ class ORB(Strategy):
 
     def prepare(self, df):
         p = self.p
-        tf = int(np.median(np.diff(df.ts.values[:5000])) // 60) or 1
+        steps = np.diff(df.ts.values[:5000])
+        tf = int(np.median(steps) // 60) if len(steps) else 1
+        tf = max(tf, 1)
+        if p["or_minutes"] % tf or p["or_start"] % tf:
+            raise ValueError(f"opening range {p['or_minutes']} min from minute {p['or_start']} does not line up "
+                             f"with {tf}-minute bars; use a bar size that divides both")
         or_end = p["or_start"] + p["or_minutes"]
         m = df.ny_min.astype(int)
         in_win = (m >= p["or_start"]) & (m < or_end)
@@ -29,6 +39,9 @@ class ORB(Strategy):
         known = (m + tf >= or_end) & (m < 18 * 60)
         df["or_hi"] = hi.where(known)
         df["or_lo"] = lo.where(known)
+        # flatten time per day: normal flat_at, or 5 minutes before a 13:00 early close
+        close_min = session_close_minute(df.tday.to_numpy())
+        df["flat_min"] = np.minimum(p["flat_at"], close_min - 5).astype(np.int32)
         self.tf = tf
         return df
 
@@ -38,7 +51,11 @@ class ORB(Strategy):
         if day != getattr(self, "_day", None):
             self._day, self._placed = day, False
             b.cancel_all()
-        if not b.flat and m >= p["flat_at"]:
+            if not b.flat:
+                b.close("session_end"); return
+        if m >= 18 * 60:                       # evening session: belongs to the next trading day
+            return
+        if not b.flat and m >= d["flat_min"][i]:
             b.close("eod"); return
         if b.orders and m >= p["last_entry"]:
             b.cancel_all()

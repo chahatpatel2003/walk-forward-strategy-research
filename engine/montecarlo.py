@@ -59,11 +59,16 @@ def _streaks(x: np.ndarray) -> np.ndarray:
 def simulate(pnl, capital: float, n_sims=10_000, method="shuffle", seed=42, block=5,
              skip_pct=0.0, haircut_pct=0.0, ruin_usd=None, keep_paths=200) -> dict:
     pnl = np.asarray(pnl, dtype=float)
+    if method == "daily" and skip_pct:
+        raise ValueError("--skip removes individual trades; in daily mode it would delete whole days. "
+                         "Use --method bootstrap or shuffle with --skip.")
     if len(pnl) < 2:
         raise ValueError("need at least 2 trades/days for Monte Carlo")
     rng = np.random.default_rng(seed)
     finals, maxdd, streak, ruined, sample = [], [], [], [], []
-    batch = max(1, min(n_sims, int(4e7 // max(len(pnl), 1))))     # keep memory around 300 MB
+    # Each batch holds ~4 float matrices of batch x n (index, values, cumsum, peak): 1e7 cells keeps
+    # the peak around 350 MB whatever the number of trades.
+    batch = max(1, min(n_sims, int(1e7 // max(len(pnl), 1))))
     done = 0
     while done < n_sims:
         k = min(batch, n_sims - done)
@@ -75,7 +80,8 @@ def simulate(pnl, capital: float, n_sims=10_000, method="shuffle", seed=42, bloc
         if ruin_usd:
             ruined.append(dd <= -abs(ruin_usd))
         if len(sample) < keep_paths:
-            sample.extend(cum[: keep_paths - len(sample)])
+            sample.extend(cum[: keep_paths - len(sample)].copy())   # copy: don't keep the whole batch alive
+        del x, cum, peak
         done += k
     finals, maxdd, streak = np.concatenate(finals), np.concatenate(maxdd), np.concatenate(streak)
     actual_cum = np.cumsum(pnl)

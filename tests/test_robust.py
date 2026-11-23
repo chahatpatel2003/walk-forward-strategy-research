@@ -48,7 +48,8 @@ def test_walkforward_optimiser_only_sees_in_sample(monkeypatch):
     def fake_run_many(jobs, workers=None, progress=True):
         seen.extend(jobs)
         return [{"summary": {"trades": 50, "net_pnl": 1.0, "sharpe_daily_ann": float(j.params["x"])},
-                 "trades": pd.DataFrame(), "days": np.array([], dtype="datetime64[D]"), "tag": j.tag} for j in jobs]
+                 "trades": pd.DataFrame(), "daily": None, "days": np.array([], dtype="datetime64[D]"), "tag": j.tag}
+                for j in jobs]
     monkeypatch.setattr(walkforward, "run_many", fake_run_many)
     base = Job("s.py", "NQ", 1, FREE, Settings())
     wf = walkforward.run(base, {"x": [1, 2, 3]}, _days("2020-01-01", "2022-12-31"), 12, 6)
