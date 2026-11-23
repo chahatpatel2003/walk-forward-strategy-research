@@ -44,6 +44,7 @@
 8. [Bugs found and fixed](#8-bugs-found-and-fixed)
 9. [Every configuration that passed](#9-every-configuration-that-passed)
 10. [Running it](#10-running-it)
+11. [Result files and downloads](#11-result-files-and-downloads)
 
 All profit figures use the same standard sizing unless stated otherwise: **$100,000 of contract value per trade**,
 with commission, slippage, bid/ask spreads and futures roll costs included. **OOS** = walk-forward out-of-sample:
@@ -562,8 +563,27 @@ robust.py          robustness pipeline for one strategy and instrument
 *_study.py         daily, multi-timeframe and intraday studies
 tools/             reports, charts, portfolio and account replays, verification tools
 tests/             224 tests
+results_summary/   one row per backtest (611 rows), account replays, dashboard data
 docs/              charts and usage notes
 ```
+
+---
+
+## 11. Result files and downloads
+
+**In this repository:** [`results_summary/`](results_summary) has one row per backtest for all three studies (94 daily, 373 multi-timeframe, 144 intraday = 611), every column explained in its [README](results_summary/README.md), plus the $10,000 account replays and the dashboard data.
+
+**Full raw output ([release](https://github.com/chahatpatel2003/walk-forward-strategy-research/releases/tag/full-results)):** every trade of every run, daily equity curves, walk-forward folds, Monte Carlo and stress-test results, and all charts.
+
+| File | Contents | Size |
+|---|---|---|
+| [`daily_study_full.zip`](https://github.com/chahatpatel2003/walk-forward-strategy-research/releases/download/full-results/daily_study_full.zip) | Daily-bar study: every run's trades, equity, walk-forward folds, Monte Carlo, stress tests, charts | 374 MB |
+| [`timeframe_study_full.zip`](https://github.com/chahatpatel2003/walk-forward-strategy-research/releases/download/full-results/timeframe_study_full.zip) | Multi-timeframe study (5-min to daily), plus cost, portfolio and look-ahead re-check outputs | 288 MB |
+| [`intraday_study_full.zip`](https://github.com/chahatpatel2003/walk-forward-strategy-research/releases/download/full-results/intraday_study_full.zip) | Intraday study (1, 5, 15 and 60-minute bars, flat by 15:55 ET) | 112 MB |
+| [`account_10k_full.zip`](https://github.com/chahatpatel2003/walk-forward-strategy-research/releases/download/full-results/account_10k_full.zip) | $10,000 single-account and combined-account replays, stop study, dashboard data | 16 MB |
+| [`individual_runs_full.zip`](https://github.com/chahatpatel2003/walk-forward-strategy-research/releases/download/full-results/individual_runs_full.zip) | Every other run: engine checks, 1-second fill verification, early strategy runs and replays | 21 MB |
+
+The only thing not published is the licensed market data (tick and 1-minute bars for NQ/MNQ, NAS100, GC/MGC and XAUUSD).
 
 ## License
 

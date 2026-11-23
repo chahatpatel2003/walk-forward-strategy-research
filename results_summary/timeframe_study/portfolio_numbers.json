@@ -1,0 +1,112 @@
+{
+  "tradable now (MNQ + MGC + XAUUSD)": {
+    "start": "2024-06-03",
+    "end": "2025-12-31",
+    "months": 18.9,
+    "runs": 15,
+    "trades entered in window": 608,
+    "trades_per_month": 32.1,
+    "positions carried in at start": 5,
+    "net (marked, includes carried-in positions)": 218785.43,
+    "max drawdown (daily closes)": -27164.54,
+    "net (flat start: trades entered in window, whole P&L)": 221400.33,
+    "max drawdown (flat start, realised on exit days)": -18146.76,
+    "profitable_months": "15 of 19",
+    "worst_month": "2025-02: -3,813",
+    "best_month": "2025-04: 37,186",
+    "max positions open at once (bar timestamps)": 9,
+    "max positions open on one day": 12,
+    "median positions open per day": 5.0,
+    "max gross exposure $ (one day)": 891620.0,
+    "median gross exposure $": 393370.0,
+    "buy_and_hold": [
+      {
+        "market": "MNQ",
+        "from": "2024-06-03",
+        "to": "2025-12-31",
+        "net $": 20468.0,
+        "max DD $": -24659.0
+      },
+      {
+        "market": "MGC",
+        "from": "2024-06-03",
+        "to": "2025-12-31",
+        "net $": 69712.34,
+        "max DD $": -18920.0
+      },
+      {
+        "market": "XAUUSD",
+        "from": "2024-06-03",
+        "to": "2025-12-31",
+        "net $": 83601.17,
+        "max DD $": -19718.41
+      }
+    ],
+    "selected": [
+      "A01 MNQ rth 4-hour",
+      "A03 MNQ rth 1-hour",
+      "A04 MNQ full 4-hour",
+      "A05 MNQ rth 4-hour",
+      "A06 MNQ full daily",
+      "A07 MNQ rth daily",
+      "A11 MNQ full 4-hour",
+      "A12 MNQ full 4-hour",
+      "A01 XAUUSD rth daily",
+      "A04 XAUUSD rth 4-hour",
+      "A06 MGC rth daily",
+      "A07 XAUUSD rth 4-hour",
+      "A09 XAUUSD rth daily",
+      "A11 XAUUSD full 4-hour",
+      "A12 XAUUSD full 1-hour"
+    ]
+  },
+  "longest history (NAS100 + MGC)": {
+    "start": "2019-01-02",
+    "end": "2021-09-30",
+    "months": 32.9,
+    "runs": 10,
+    "trades entered in window": 731,
+    "trades_per_month": 22.2,
+    "positions carried in at start": 1,
+    "net (marked, includes carried-in positions)": 259736.73,
+    "max drawdown (daily closes)": -74232.85,
+    "net (flat start: trades entered in window, whole P&L)": 258309.75,
+    "max drawdown (flat start, realised on exit days)": -67406.94,
+    "profitable_months": "23 of 33",
+    "worst_month": "2020-02: -28,086",
+    "best_month": "2020-04: 42,284",
+    "max positions open at once (bar timestamps)": 7,
+    "max positions open on one day": 8,
+    "median positions open per day": 3.0,
+    "max gross exposure $ (one day)": 803033.0,
+    "median gross exposure $": 305191.0,
+    "buy_and_hold": [
+      {
+        "market": "NAS100",
+        "from": "2019-01-02",
+        "to": "2021-09-30",
+        "net $": 132205.63,
+        "max DD $": -48874.61
+      },
+      {
+        "market": "MGC",
+        "from": "2019-01-02",
+        "to": "2021-09-30",
+        "net $": 23853.75,
+        "max DD $": -30158.7
+      }
+    ],
+    "selected": [
+      "A01 NAS100 full 4-hour",
+      "A03 NAS100 rth daily",
+      "A04 NAS100 full 4-hour",
+      "A06 NAS100 rth daily",
+      "A07 NAS100 full 4-hour",
+      "A09 NAS100 rth daily",
+      "A11 NAS100 rth 1-hour",
+      "A01 MGC full daily",
+      "A04 MGC rth 4-hour",
+      "A06 MGC rth daily"
+    ]
+  }
+}

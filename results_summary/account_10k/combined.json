@@ -1,0 +1,1444 @@
+{
+ "A hold": {
+  "summary": {
+   "start": "2013-08-01",
+   "end": "2026-11-17",
+   "months": 159.5,
+   "capital": 10000.0,
+   "risk_pct": 2.0,
+   "trades_offered": 2652,
+   "trades_taken": 2652,
+   "trades_per_month": 16.6,
+   "skipped": {},
+   "final_equity": 23648823.56,
+   "net": 23638823.56,
+   "return_pct": 236388.2,
+   "cagr_pct": 79.4,
+   "max_dd_usd": -7210885.13,
+   "max_dd_pct": -53.2,
+   "win_pct": 64.7,
+   "avg_win_r": 0.7,
+   "avg_loss_r": -0.79,
+   "worst_trade_r": -11.91,
+   "losses_bigger_than_risk": 223,
+   "profit_factor": 1.44,
+   "profitable_months": "97 of 160",
+   "worst_month": "2026-06 -4,451,362",
+   "max_open_positions": 11,
+   "max_open_at_day_close": 10,
+   "max_leverage_any_time": 16.7,
+   "max_gross_exposure": 205213461.0,
+   "max_leverage": 18.4,
+   "median_leverage": 1.8,
+   "account_hit_zero_on": null,
+   "cut_at_16:00": 0,
+   "largest_position": "MGC 568, MNQ 1,264, NAS100 70.28, XAUUSD 160.61",
+   "overnight_positions": 2081
+  },
+  "per_run": [
+   {
+    "run": "A01 MGC full daily",
+    "offered": 56,
+    "trades": 56,
+    "net": 212140.6,
+    "win_pct": 75.0,
+    "median_qty": 12.5
+   },
+   {
+    "run": "A01 MNQ cash 4-hour",
+    "offered": 40,
+    "trades": 40,
+    "net": 782326.0,
+    "win_pct": 80.0,
+    "median_qty": 58.5
+   },
+   {
+    "run": "A01 NAS100 full 4-hour",
+    "offered": 286,
+    "trades": 286,
+    "net": 51310.42,
+    "win_pct": 71.33,
+    "median_qty": 9.51
+   },
+   {
+    "run": "A01 XAUUSD cash daily",
+    "offered": 21,
+    "trades": 21,
+    "net": -80425.32,
+    "win_pct": 76.19,
+    "median_qty": 6.86
+   },
+   {
+    "run": "A03 MNQ cash 1-hour",
+    "offered": 227,
+    "trades": 227,
+    "net": 1929556.0,
+    "win_pct": 64.76,
+    "median_qty": 26.0
+   },
+   {
+    "run": "A03 NAS100 cash daily",
+    "offered": 55,
+    "trades": 55,
+    "net": 14968.27,
+    "win_pct": 83.64,
+    "median_qty": 4.01
+   },
+   {
+    "run": "A04 MGC cash 4-hour",
+    "offered": 76,
+    "trades": 76,
+    "net": 862675.4,
+    "win_pct": 72.37,
+    "median_qty": 58.0
+   },
+   {
+    "run": "A04 MNQ full 4-hour",
+    "offered": 38,
+    "trades": 38,
+    "net": 1680370.0,
+    "win_pct": 76.32,
+    "median_qty": 146.5
+   },
+   {
+    "run": "A04 NAS100 full 4-hour",
+    "offered": 257,
+    "trades": 257,
+    "net": 67884.9,
+    "win_pct": 77.04,
+    "median_qty": 10.02
+   },
+   {
+    "run": "A04 XAUUSD cash 4-hour",
+    "offered": 46,
+    "trades": 46,
+    "net": 1686498.89,
+    "win_pct": 71.74,
+    "median_qty": 17.82
+   },
+   {
+    "run": "A05 MNQ cash 4-hour",
+    "offered": 34,
+    "trades": 34,
+    "net": 1229954.0,
+    "win_pct": 67.65,
+    "median_qty": 63.0
+   },
+   {
+    "run": "A06 MGC cash daily",
+    "offered": 121,
+    "trades": 121,
+    "net": 109200.47,
+    "win_pct": 64.46,
+    "median_qty": 12.0
+   },
+   {
+    "run": "A06 MNQ full daily",
+    "offered": 18,
+    "trades": 18,
+    "net": 1538058.0,
+    "win_pct": 88.89,
+    "median_qty": 29.0
+   },
+   {
+    "run": "A06 NAS100 cash daily",
+    "offered": 103,
+    "trades": 103,
+    "net": 17783.9,
+    "win_pct": 67.96,
+    "median_qty": 3.41
+   },
+   {
+    "run": "A07 MNQ cash daily",
+    "offered": 62,
+    "trades": 62,
+    "net": 843402.5,
+    "win_pct": 69.35,
+    "median_qty": 35.5
+   },
+   {
+    "run": "A07 NAS100 full 4-hour",
+    "offered": 328,
+    "trades": 328,
+    "net": 62110.36,
+    "win_pct": 74.09,
+    "median_qty": 8.26
+   },
+   {
+    "run": "A07 XAUUSD cash 4-hour",
+    "offered": 124,
+    "trades": 124,
+    "net": 514985.5,
+    "win_pct": 70.16,
+    "median_qty": 27.06
+   },
+   {
+    "run": "A09 NAS100 cash daily",
+    "offered": 80,
+    "trades": 80,
+    "net": 7797.24,
+    "win_pct": 65.0,
+    "median_qty": 3.54
+   },
+   {
+    "run": "A09 XAUUSD cash daily",
+    "offered": 29,
+    "trades": 29,
+    "net": 1748025.34,
+    "win_pct": 62.07,
+    "median_qty": 13.93
+   },
+   {
+    "run": "A11 MNQ full 4-hour",
+    "offered": 95,
+    "trades": 95,
+    "net": 3022228.0,
+    "win_pct": 33.68,
+    "median_qty": 128.0
+   },
+   {
+    "run": "A11 NAS100 cash 1-hour",
+    "offered": 161,
+    "trades": 161,
+    "net": 60994.42,
+    "win_pct": 44.1,
+    "median_qty": 10.48
+   },
+   {
+    "run": "A11 XAUUSD full 4-hour",
+    "offered": 84,
+    "trades": 84,
+    "net": 2526022.6,
+    "win_pct": 36.9,
+    "median_qty": 28.12
+   },
+   {
+    "run": "A12 MNQ full 4-hour",
+    "offered": 6,
+    "trades": 6,
+    "net": 67235.0,
+    "win_pct": 83.33,
+    "median_qty": 26.0
+   },
+   {
+    "run": "A12 XAUUSD full 1-hour",
+    "offered": 305,
+    "trades": 305,
+    "net": 4683721.07,
+    "win_pct": 47.87,
+    "median_qty": 15.2
+   }
+  ],
+  "yearly": [
+   {
+    "index": 2013,
+    "start $": 10000.0,
+    "end $": 11258.0,
+    "return %": 12.6,
+    "max DD % in year": -7.6,
+    "trades": 10,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2014,
+    "start $": 11258.0,
+    "end $": 10670.0,
+    "return %": -5.2,
+    "max DD % in year": -5.6,
+    "trades": 3,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2015,
+    "start $": 10670.0,
+    "end $": 10022.0,
+    "return %": -6.1,
+    "max DD % in year": -43.4,
+    "trades": 131,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2016,
+    "start $": 10022.0,
+    "end $": 11035.0,
+    "return %": 10.1,
+    "max DD % in year": -39.5,
+    "trades": 177,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2017,
+    "start $": 11035.0,
+    "end $": 37385.0,
+    "return %": 238.8,
+    "max DD % in year": -14.1,
+    "trades": 149,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2018,
+    "start $": 37385.0,
+    "end $": 27101.0,
+    "return %": -27.5,
+    "max DD % in year": -49.4,
+    "trades": 169,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2019,
+    "start $": 27101.0,
+    "end $": 75198.0,
+    "return %": 177.5,
+    "max DD % in year": -19.0,
+    "trades": 241,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2020,
+    "start $": 75198.0,
+    "end $": 153685.0,
+    "return %": 104.4,
+    "max DD % in year": -53.2,
+    "trades": 268,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2021,
+    "start $": 153685.0,
+    "end $": 286341.0,
+    "return %": 86.3,
+    "max DD % in year": -18.8,
+    "trades": 227,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2022,
+    "start $": 286341.0,
+    "end $": 312106.0,
+    "return %": 9.0,
+    "max DD % in year": -5.9,
+    "trades": 61,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2023,
+    "start $": 312106.0,
+    "end $": 434481.0,
+    "return %": 39.2,
+    "max DD % in year": -12.2,
+    "trades": 185,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2024,
+    "start $": 434481.0,
+    "end $": 1862777.0,
+    "return %": 328.7,
+    "max DD % in year": -27.6,
+    "trades": 381,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2025,
+    "start $": 1862777.0,
+    "end $": 14842003.0,
+    "return %": 696.8,
+    "max DD % in year": -35.3,
+    "trades": 412,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2026,
+    "start $": 14842003.0,
+    "end $": 23648824.0,
+    "return %": 59.3,
+    "max DD % in year": -25.1,
+    "trades": 238,
+    "markets traded": "MNQ, XAUUSD"
+   }
+  ]
+ },
+ "A 16:00": {
+  "summary": {
+   "start": "2013-08-01",
+   "end": "2026-11-17",
+   "months": 159.5,
+   "capital": 10000.0,
+   "risk_pct": 2.0,
+   "trades_offered": 2652,
+   "trades_taken": 2347,
+   "trades_per_month": 14.7,
+   "skipped": {
+    "MGC: 1 minimum size risks more than 2.0% ": 127,
+    "MNQ: 1 minimum size risks more than 2.0% ": 178
+   },
+   "final_equity": 35665.78,
+   "net": 25665.78,
+   "return_pct": 256.7,
+   "cagr_pct": 10.0,
+   "max_dd_usd": -7411.73,
+   "max_dd_pct": -31.0,
+   "win_pct": 58.7,
+   "avg_win_r": 0.37,
+   "avg_loss_r": -0.45,
+   "worst_trade_r": -4.51,
+   "losses_bigger_than_risk": 83,
+   "profit_factor": 1.14,
+   "profitable_months": "79 of 160",
+   "worst_month": "2025-10 -3,200",
+   "max_open_positions": 6,
+   "max_open_at_day_close": 1,
+   "max_leverage_any_time": 10.5,
+   "max_gross_exposure": 96915.0,
+   "max_leverage": 2.9,
+   "median_leverage": 0.0,
+   "account_hit_zero_on": null,
+   "cut_at_16:00": 2082,
+   "largest_position": "MGC 3, MNQ 3, NAS100 10.69, XAUUSD 1.03",
+   "overnight_positions": 2
+  },
+  "per_run": [
+   {
+    "run": "A01 MGC full daily",
+    "offered": 56,
+    "trades": 7.0,
+    "net": -16.5,
+    "win_pct": 57.14,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A01 MNQ cash 4-hour",
+    "offered": 40,
+    "trades": 15.0,
+    "net": 450.5,
+    "win_pct": 66.67,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A01 NAS100 full 4-hour",
+    "offered": 286,
+    "trades": 286.0,
+    "net": 4372.09,
+    "win_pct": 62.24,
+    "median_qty": 2.88
+   },
+   {
+    "run": "A01 XAUUSD cash daily",
+    "offered": 21,
+    "trades": 21.0,
+    "net": -25.0,
+    "win_pct": 61.9,
+    "median_qty": 0.08
+   },
+   {
+    "run": "A03 MNQ cash 1-hour",
+    "offered": 227,
+    "trades": 223.0,
+    "net": -7910.0,
+    "win_pct": 55.16,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A03 NAS100 cash daily",
+    "offered": 55,
+    "trades": 55.0,
+    "net": 510.46,
+    "win_pct": 61.82,
+    "median_qty": 1.09
+   },
+   {
+    "run": "A04 MGC cash 4-hour",
+    "offered": 76,
+    "trades": 69.0,
+    "net": -176.0,
+    "win_pct": 59.42,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A04 MNQ full 4-hour",
+    "offered": 38,
+    "trades": 35.0,
+    "net": -1800.5,
+    "win_pct": 60.0,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A04 NAS100 full 4-hour",
+    "offered": 257,
+    "trades": 257.0,
+    "net": 2605.48,
+    "win_pct": 64.98,
+    "median_qty": 3.31
+   },
+   {
+    "run": "A04 XAUUSD cash 4-hour",
+    "offered": 46,
+    "trades": 46.0,
+    "net": -193.24,
+    "win_pct": 58.7,
+    "median_qty": 0.16
+   },
+   {
+    "run": "A05 MNQ cash 4-hour",
+    "offered": 34,
+    "trades": 14.0,
+    "net": -2.5,
+    "win_pct": 64.29,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A06 MGC cash daily",
+    "offered": 121,
+    "trades": 50.0,
+    "net": -572.0,
+    "win_pct": 48.0,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A06 MNQ full daily",
+    "offered": 18,
+    "trades": 0.0,
+    "net": 0.0,
+    "win_pct": NaN,
+    "median_qty": NaN
+   },
+   {
+    "run": "A06 NAS100 cash daily",
+    "offered": 103,
+    "trades": 103.0,
+    "net": 2157.2,
+    "win_pct": 58.25,
+    "median_qty": 1.29
+   },
+   {
+    "run": "A07 MNQ cash daily",
+    "offered": 62,
+    "trades": 0.0,
+    "net": 0.0,
+    "win_pct": NaN,
+    "median_qty": NaN
+   },
+   {
+    "run": "A07 NAS100 full 4-hour",
+    "offered": 328,
+    "trades": 328.0,
+    "net": 4340.23,
+    "win_pct": 66.16,
+    "median_qty": 2.94
+   },
+   {
+    "run": "A07 XAUUSD cash 4-hour",
+    "offered": 124,
+    "trades": 124.0,
+    "net": -125.52,
+    "win_pct": 55.65,
+    "median_qty": 0.12
+   },
+   {
+    "run": "A09 NAS100 cash daily",
+    "offered": 80,
+    "trades": 80.0,
+    "net": 945.14,
+    "win_pct": 55.0,
+    "median_qty": 1.34
+   },
+   {
+    "run": "A09 XAUUSD cash daily",
+    "offered": 29,
+    "trades": 29.0,
+    "net": 1647.05,
+    "win_pct": 68.97,
+    "median_qty": 0.06
+   },
+   {
+    "run": "A11 MNQ full 4-hour",
+    "offered": 95,
+    "trades": 49.0,
+    "net": 2376.5,
+    "win_pct": 48.98,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A11 NAS100 cash 1-hour",
+    "offered": 161,
+    "trades": 161.0,
+    "net": 2313.12,
+    "win_pct": 55.9,
+    "median_qty": 2.69
+   },
+   {
+    "run": "A11 XAUUSD full 4-hour",
+    "offered": 84,
+    "trades": 84.0,
+    "net": 2234.52,
+    "win_pct": 54.76,
+    "median_qty": 0.11
+   },
+   {
+    "run": "A12 MNQ full 4-hour",
+    "offered": 6,
+    "trades": 6.0,
+    "net": 299.0,
+    "win_pct": 50.0,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A12 XAUUSD full 1-hour",
+    "offered": 305,
+    "trades": 305.0,
+    "net": 12235.76,
+    "win_pct": 50.49,
+    "median_qty": 0.27
+   }
+  ],
+  "yearly": [
+   {
+    "index": 2013,
+    "start $": 10000.0,
+    "end $": 10104.0,
+    "return %": 1.0,
+    "max DD % in year": -2.0,
+    "trades": 10,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2014,
+    "start $": 10104.0,
+    "end $": 9872.0,
+    "return %": -2.3,
+    "max DD % in year": -2.7,
+    "trades": 3,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2015,
+    "start $": 9872.0,
+    "end $": 7708.0,
+    "return %": -21.9,
+    "max DD % in year": -30.9,
+    "trades": 131,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2016,
+    "start $": 7708.0,
+    "end $": 9686.0,
+    "return %": 25.7,
+    "max DD % in year": -11.6,
+    "trades": 177,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2017,
+    "start $": 9686.0,
+    "end $": 11319.0,
+    "return %": 16.9,
+    "max DD % in year": -11.1,
+    "trades": 149,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2018,
+    "start $": 11319.0,
+    "end $": 8784.0,
+    "return %": -22.4,
+    "max DD % in year": -27.3,
+    "trades": 169,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2019,
+    "start $": 8784.0,
+    "end $": 13486.0,
+    "return %": 53.5,
+    "max DD % in year": -9.2,
+    "trades": 213,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2020,
+    "start $": 13486.0,
+    "end $": 19740.0,
+    "return %": 46.4,
+    "max DD % in year": -13.7,
+    "trades": 239,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2021,
+    "start $": 19740.0,
+    "end $": 27016.0,
+    "return %": 36.9,
+    "max DD % in year": -18.7,
+    "trades": 215,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2022,
+    "start $": 27016.0,
+    "end $": 26701.0,
+    "return %": -1.2,
+    "max DD % in year": -3.1,
+    "trades": 58,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2023,
+    "start $": 26701.0,
+    "end $": 28618.0,
+    "return %": 7.2,
+    "max DD % in year": -12.3,
+    "trades": 182,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2024,
+    "start $": 28618.0,
+    "end $": 30887.0,
+    "return %": 7.9,
+    "max DD % in year": -16.3,
+    "trades": 295,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2025,
+    "start $": 30887.0,
+    "end $": 34396.0,
+    "return %": 11.4,
+    "max DD % in year": -16.6,
+    "trades": 324,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2026,
+    "start $": 34396.0,
+    "end $": 35666.0,
+    "return %": 3.7,
+    "max DD % in year": -17.2,
+    "trades": 182,
+    "markets traded": "MNQ, XAUUSD"
+   }
+  ]
+ },
+ "B hold": {
+  "summary": {
+   "start": "2013-08-01",
+   "end": "2026-11-17",
+   "months": 159.5,
+   "capital": 10000.0,
+   "risk_pct": 2.0,
+   "trades_offered": 3067,
+   "trades_taken": 3067,
+   "trades_per_month": 19.2,
+   "skipped": {},
+   "final_equity": 7899124.81,
+   "net": 7889124.81,
+   "return_pct": 78891.2,
+   "cagr_pct": 65.2,
+   "max_dd_usd": -4176995.03,
+   "max_dd_pct": -40.2,
+   "win_pct": 62.1,
+   "avg_win_r": 0.68,
+   "avg_loss_r": -0.78,
+   "worst_trade_r": -4.35,
+   "losses_bigger_than_risk": 282,
+   "profit_factor": 1.28,
+   "profitable_months": "93 of 160",
+   "worst_month": "2026-06 -2,574,623",
+   "max_open_positions": 10,
+   "max_open_at_day_close": 9,
+   "max_leverage_any_time": 14.9,
+   "max_gross_exposure": 79098403.0,
+   "max_leverage": 12.2,
+   "median_leverage": 1.6,
+   "account_hit_zero_on": null,
+   "cut_at_16:00": 0,
+   "largest_position": "MGC 255, MNQ 576, NAS100 68.81, XAUUSD 66.05",
+   "overnight_positions": 2175
+  },
+  "per_run": [
+   {
+    "run": "A01 MGC full daily",
+    "offered": 66,
+    "trades": 66,
+    "net": 133199.27,
+    "win_pct": 72.73,
+    "median_qty": 10.0
+   },
+   {
+    "run": "A01 MNQ cash 4-hour",
+    "offered": 40,
+    "trades": 40,
+    "net": 265258.63,
+    "win_pct": 75.0,
+    "median_qty": 34.0
+   },
+   {
+    "run": "A01 NAS100 full 4-hour",
+    "offered": 306,
+    "trades": 306,
+    "net": 59801.44,
+    "win_pct": 67.65,
+    "median_qty": 9.29
+   },
+   {
+    "run": "A01 XAUUSD cash daily",
+    "offered": 19,
+    "trades": 19,
+    "net": -115914.14,
+    "win_pct": 73.68,
+    "median_qty": 4.23
+   },
+   {
+    "run": "A03 MNQ cash 1-hour",
+    "offered": 265,
+    "trades": 265,
+    "net": -1561289.65,
+    "win_pct": 59.62,
+    "median_qty": 26.0
+   },
+   {
+    "run": "A03 NAS100 cash daily",
+    "offered": 73,
+    "trades": 73,
+    "net": 13783.16,
+    "win_pct": 75.34,
+    "median_qty": 3.47
+   },
+   {
+    "run": "A04 MGC cash 4-hour",
+    "offered": 81,
+    "trades": 81,
+    "net": 248526.77,
+    "win_pct": 66.67,
+    "median_qty": 35.0
+   },
+   {
+    "run": "A04 MNQ full 4-hour",
+    "offered": 40,
+    "trades": 40,
+    "net": 355298.65,
+    "win_pct": 72.5,
+    "median_qty": 82.5
+   },
+   {
+    "run": "A04 NAS100 full 4-hour",
+    "offered": 264,
+    "trades": 264,
+    "net": 40320.68,
+    "win_pct": 74.24,
+    "median_qty": 9.72
+   },
+   {
+    "run": "A04 XAUUSD cash 4-hour",
+    "offered": 50,
+    "trades": 50,
+    "net": 491281.04,
+    "win_pct": 66.0,
+    "median_qty": 8.62
+   },
+   {
+    "run": "A05 MNQ cash 4-hour",
+    "offered": 40,
+    "trades": 40,
+    "net": 401793.31,
+    "win_pct": 52.5,
+    "median_qty": 31.5
+   },
+   {
+    "run": "A06 MGC cash daily",
+    "offered": 161,
+    "trades": 161,
+    "net": 280762.11,
+    "win_pct": 65.84,
+    "median_qty": 13.0
+   },
+   {
+    "run": "A06 MNQ full daily",
+    "offered": 23,
+    "trades": 23,
+    "net": 739179.83,
+    "win_pct": 82.61,
+    "median_qty": 14.0
+   },
+   {
+    "run": "A06 NAS100 cash daily",
+    "offered": 121,
+    "trades": 121,
+    "net": 17187.02,
+    "win_pct": 66.94,
+    "median_qty": 2.83
+   },
+   {
+    "run": "A07 MNQ cash daily",
+    "offered": 35,
+    "trades": 35,
+    "net": 380176.91,
+    "win_pct": 71.43,
+    "median_qty": 66.0
+   },
+   {
+    "run": "A07 NAS100 full 4-hour",
+    "offered": 544,
+    "trades": 544,
+    "net": 57320.72,
+    "win_pct": 68.57,
+    "median_qty": 7.24
+   },
+   {
+    "run": "A07 XAUUSD cash 4-hour",
+    "offered": 144,
+    "trades": 144,
+    "net": 496238.12,
+    "win_pct": 70.83,
+    "median_qty": 12.62
+   },
+   {
+    "run": "A09 NAS100 cash daily",
+    "offered": 80,
+    "trades": 80,
+    "net": 6263.98,
+    "win_pct": 56.25,
+    "median_qty": 3.77
+   },
+   {
+    "run": "A09 XAUUSD cash daily",
+    "offered": 29,
+    "trades": 29,
+    "net": 555158.93,
+    "win_pct": 55.17,
+    "median_qty": 5.81
+   },
+   {
+    "run": "A11 MNQ full 4-hour",
+    "offered": 98,
+    "trades": 98,
+    "net": 1371545.24,
+    "win_pct": 32.65,
+    "median_qty": 58.0
+   },
+   {
+    "run": "A11 NAS100 cash 1-hour",
+    "offered": 191,
+    "trades": 191,
+    "net": 74284.24,
+    "win_pct": 41.36,
+    "median_qty": 9.57
+   },
+   {
+    "run": "A11 XAUUSD full 4-hour",
+    "offered": 86,
+    "trades": 86,
+    "net": 1442149.85,
+    "win_pct": 36.05,
+    "median_qty": 11.74
+   },
+   {
+    "run": "A12 MNQ full 4-hour",
+    "offered": 6,
+    "trades": 6,
+    "net": 42388.25,
+    "win_pct": 83.33,
+    "median_qty": 16.0
+   },
+   {
+    "run": "A12 XAUUSD full 1-hour",
+    "offered": 305,
+    "trades": 305,
+    "net": 2094410.48,
+    "win_pct": 47.87,
+    "median_qty": 8.48
+   }
+  ],
+  "yearly": [
+   {
+    "index": 2013,
+    "start $": 10000.0,
+    "end $": 10873.0,
+    "return %": 8.7,
+    "max DD % in year": -9.7,
+    "trades": 11,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2014,
+    "start $": 10873.0,
+    "end $": 12871.0,
+    "return %": 18.4,
+    "max DD % in year": -4.9,
+    "trades": 9,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2015,
+    "start $": 12871.0,
+    "end $": 10832.0,
+    "return %": -15.8,
+    "max DD % in year": -36.1,
+    "trades": 250,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2016,
+    "start $": 10832.0,
+    "end $": 13065.0,
+    "return %": 20.6,
+    "max DD % in year": -24.3,
+    "trades": 190,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2017,
+    "start $": 13065.0,
+    "end $": 32152.0,
+    "return %": 146.1,
+    "max DD % in year": -13.6,
+    "trades": 199,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2018,
+    "start $": 32152.0,
+    "end $": 25725.0,
+    "return %": -20.0,
+    "max DD % in year": -40.2,
+    "trades": 219,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2019,
+    "start $": 25725.0,
+    "end $": 50417.0,
+    "return %": 96.0,
+    "max DD % in year": -17.9,
+    "trades": 267,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2020,
+    "start $": 50417.0,
+    "end $": 180743.0,
+    "return %": 258.5,
+    "max DD % in year": -21.5,
+    "trades": 297,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2021,
+    "start $": 180743.0,
+    "end $": 285923.0,
+    "return %": 58.2,
+    "max DD % in year": -18.0,
+    "trades": 257,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2022,
+    "start $": 285923.0,
+    "end $": 284992.0,
+    "return %": -0.3,
+    "max DD % in year": -9.8,
+    "trades": 48,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2023,
+    "start $": 284992.0,
+    "end $": 329699.0,
+    "return %": 15.7,
+    "max DD % in year": -20.9,
+    "trades": 219,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2024,
+    "start $": 329699.0,
+    "end $": 1047607.0,
+    "return %": 217.7,
+    "max DD % in year": -29.7,
+    "trades": 377,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2025,
+    "start $": 1047607.0,
+    "end $": 6786378.0,
+    "return %": 547.8,
+    "max DD % in year": -26.6,
+    "trades": 444,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2026,
+    "start $": 6786378.0,
+    "end $": 7899125.0,
+    "return %": 16.4,
+    "max DD % in year": -34.6,
+    "trades": 280,
+    "markets traded": "MNQ, XAUUSD"
+   }
+  ]
+ },
+ "B 16:00": {
+  "summary": {
+   "start": "2013-08-01",
+   "end": "2026-11-17",
+   "months": 159.5,
+   "capital": 10000.0,
+   "risk_pct": 2.0,
+   "trades_offered": 3067,
+   "trades_taken": 2846,
+   "trades_per_month": 17.8,
+   "skipped": {
+    "MGC: 1 minimum size risks more than 2.0% ": 100,
+    "MNQ: 1 minimum size risks more than 2.0% ": 121
+   },
+   "final_equity": 38931.54,
+   "net": 28931.54,
+   "return_pct": 289.3,
+   "cagr_pct": 10.8,
+   "max_dd_usd": -9241.24,
+   "max_dd_pct": -28.2,
+   "win_pct": 57.4,
+   "avg_win_r": 0.37,
+   "avg_loss_r": -0.43,
+   "worst_trade_r": -1.01,
+   "losses_bigger_than_risk": 66,
+   "profit_factor": 1.12,
+   "profitable_months": "85 of 160",
+   "worst_month": "2024-07 -4,828",
+   "max_open_positions": 6,
+   "max_open_at_day_close": 1,
+   "max_leverage_any_time": 10.5,
+   "max_gross_exposure": 116298.0,
+   "max_leverage": 2.8,
+   "median_leverage": 0.0,
+   "account_hit_zero_on": null,
+   "cut_at_16:00": 2176,
+   "largest_position": "MGC 4, MNQ 4, NAS100 12.18, XAUUSD 1.17",
+   "overnight_positions": 2
+  },
+  "per_run": [
+   {
+    "run": "A01 MGC full daily",
+    "offered": 66,
+    "trades": 23.0,
+    "net": 161.5,
+    "win_pct": 56.52,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A01 MNQ cash 4-hour",
+    "offered": 40,
+    "trades": 26.0,
+    "net": -1311.3,
+    "win_pct": 50.0,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A01 NAS100 full 4-hour",
+    "offered": 306,
+    "trades": 306.0,
+    "net": 7384.39,
+    "win_pct": 59.8,
+    "median_qty": 3.22
+   },
+   {
+    "run": "A01 XAUUSD cash daily",
+    "offered": 19,
+    "trades": 19.0,
+    "net": -867.79,
+    "win_pct": 47.37,
+    "median_qty": 0.1
+   },
+   {
+    "run": "A03 MNQ cash 1-hour",
+    "offered": 265,
+    "trades": 260.0,
+    "net": -9277.4,
+    "win_pct": 54.62,
+    "median_qty": 2.0
+   },
+   {
+    "run": "A03 NAS100 cash daily",
+    "offered": 73,
+    "trades": 73.0,
+    "net": 1849.46,
+    "win_pct": 64.38,
+    "median_qty": 1.39
+   },
+   {
+    "run": "A04 MGC cash 4-hour",
+    "offered": 81,
+    "trades": 77.0,
+    "net": -388.98,
+    "win_pct": 57.14,
+    "median_qty": 2.0
+   },
+   {
+    "run": "A04 MNQ full 4-hour",
+    "offered": 40,
+    "trades": 38.0,
+    "net": -1252.57,
+    "win_pct": 60.53,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A04 NAS100 full 4-hour",
+    "offered": 264,
+    "trades": 264.0,
+    "net": 4663.73,
+    "win_pct": 65.15,
+    "median_qty": 3.82
+   },
+   {
+    "run": "A04 XAUUSD cash 4-hour",
+    "offered": 50,
+    "trades": 50.0,
+    "net": -575.98,
+    "win_pct": 56.0,
+    "median_qty": 0.18
+   },
+   {
+    "run": "A05 MNQ cash 4-hour",
+    "offered": 40,
+    "trades": 24.0,
+    "net": -288.5,
+    "win_pct": 58.33,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A06 MGC cash daily",
+    "offered": 161,
+    "trades": 108.0,
+    "net": -2378.0,
+    "win_pct": 43.52,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A06 MNQ full daily",
+    "offered": 23,
+    "trades": 0.0,
+    "net": 0.0,
+    "win_pct": NaN,
+    "median_qty": NaN
+   },
+   {
+    "run": "A06 NAS100 cash daily",
+    "offered": 121,
+    "trades": 121.0,
+    "net": 2548.71,
+    "win_pct": 56.2,
+    "median_qty": 1.29
+   },
+   {
+    "run": "A07 MNQ cash daily",
+    "offered": 35,
+    "trades": 0.0,
+    "net": 0.0,
+    "win_pct": NaN,
+    "median_qty": NaN
+   },
+   {
+    "run": "A07 NAS100 full 4-hour",
+    "offered": 544,
+    "trades": 544.0,
+    "net": 3606.97,
+    "win_pct": 62.13,
+    "median_qty": 3.49
+   },
+   {
+    "run": "A07 XAUUSD cash 4-hour",
+    "offered": 144,
+    "trades": 144.0,
+    "net": -46.53,
+    "win_pct": 56.25,
+    "median_qty": 0.13
+   },
+   {
+    "run": "A09 NAS100 cash daily",
+    "offered": 80,
+    "trades": 80.0,
+    "net": -1782.36,
+    "win_pct": 50.0,
+    "median_qty": 1.52
+   },
+   {
+    "run": "A09 XAUUSD cash daily",
+    "offered": 29,
+    "trades": 29.0,
+    "net": 1879.13,
+    "win_pct": 68.97,
+    "median_qty": 0.07
+   },
+   {
+    "run": "A11 MNQ full 4-hour",
+    "offered": 98,
+    "trades": 72.0,
+    "net": 1400.54,
+    "win_pct": 47.22,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A11 NAS100 cash 1-hour",
+    "offered": 191,
+    "trades": 191.0,
+    "net": 4971.99,
+    "win_pct": 59.16,
+    "median_qty": 3.28
+   },
+   {
+    "run": "A11 XAUUSD full 4-hour",
+    "offered": 86,
+    "trades": 86.0,
+    "net": 3118.22,
+    "win_pct": 55.81,
+    "median_qty": 0.12
+   },
+   {
+    "run": "A12 MNQ full 4-hour",
+    "offered": 6,
+    "trades": 6.0,
+    "net": 299.0,
+    "win_pct": 50.0,
+    "median_qty": 1.0
+   },
+   {
+    "run": "A12 XAUUSD full 1-hour",
+    "offered": 305,
+    "trades": 305.0,
+    "net": 15217.31,
+    "win_pct": 50.49,
+    "median_qty": 0.33
+   }
+  ],
+  "yearly": [
+   {
+    "index": 2013,
+    "start $": 10000.0,
+    "end $": 10061.0,
+    "return %": 0.6,
+    "max DD % in year": -2.5,
+    "trades": 11,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2014,
+    "start $": 10061.0,
+    "end $": 10226.0,
+    "return %": 1.6,
+    "max DD % in year": -2.0,
+    "trades": 9,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2015,
+    "start $": 10226.0,
+    "end $": 9380.0,
+    "return %": -8.3,
+    "max DD % in year": -28.2,
+    "trades": 250,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2016,
+    "start $": 9380.0,
+    "end $": 11193.0,
+    "return %": 19.3,
+    "max DD % in year": -12.7,
+    "trades": 190,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2017,
+    "start $": 11193.0,
+    "end $": 11952.0,
+    "return %": 6.8,
+    "max DD % in year": -20.3,
+    "trades": 199,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2018,
+    "start $": 11952.0,
+    "end $": 10557.0,
+    "return %": -11.7,
+    "max DD % in year": -21.2,
+    "trades": 219,
+    "markets traded": "NAS100"
+   },
+   {
+    "index": 2019,
+    "start $": 10557.0,
+    "end $": 15166.0,
+    "return %": 43.7,
+    "max DD % in year": -12.5,
+    "trades": 248,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2020,
+    "start $": 15166.0,
+    "end $": 25598.0,
+    "return %": 68.8,
+    "max DD % in year": -7.8,
+    "trades": 262,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2021,
+    "start $": 25598.0,
+    "end $": 32341.0,
+    "return %": 26.3,
+    "max DD % in year": -18.2,
+    "trades": 252,
+    "markets traded": "MGC, NAS100"
+   },
+   {
+    "index": 2022,
+    "start $": 32341.0,
+    "end $": 30786.0,
+    "return %": -4.8,
+    "max DD % in year": -6.2,
+    "trades": 47,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2023,
+    "start $": 30786.0,
+    "end $": 32228.0,
+    "return %": 4.7,
+    "max DD % in year": -15.9,
+    "trades": 219,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2024,
+    "start $": 32228.0,
+    "end $": 37158.0,
+    "return %": 15.3,
+    "max DD % in year": -18.0,
+    "trades": 339,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2025,
+    "start $": 37158.0,
+    "end $": 41255.0,
+    "return %": 11.0,
+    "max DD % in year": -12.8,
+    "trades": 372,
+    "markets traded": "MGC, MNQ, XAUUSD"
+   },
+   {
+    "index": 2026,
+    "start $": 41255.0,
+    "end $": 38932.0,
+    "return %": -5.6,
+    "max DD % in year": -19.2,
+    "trades": 229,
+    "markets traded": "MNQ, XAUUSD"
+   }
+  ]
+ }
+}

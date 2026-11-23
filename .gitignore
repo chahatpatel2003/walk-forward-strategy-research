@@ -11,3 +11,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
+
+# Packaged full results for GitHub Releases
+release_assets/

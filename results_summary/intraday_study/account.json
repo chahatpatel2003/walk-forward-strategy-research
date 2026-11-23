@@ -1,0 +1,172 @@
+{
+ "passed every check, no size cap": {
+  "summary": {
+   "start": "2022-07-01",
+   "end": "2026-10-05",
+   "months": 51.2,
+   "capital": 10000.0,
+   "risk_pct": 2.0,
+   "trades_offered": 588,
+   "trades_taken": 464,
+   "trades_per_month": 9.1,
+   "skipped": {
+    "MNQ: one minimum size exceeds the 2.0% risk (or the size cap)": 124
+   },
+   "final_equity": 24111.99,
+   "net": 14111.99,
+   "return_pct": 141.1,
+   "cagr_pct": 22.9,
+   "max_dd_usd": -1717.48,
+   "max_dd_pct": -12.2,
+   "win_pct": 54.5,
+   "avg_win_r": 0.74,
+   "avg_loss_r": -0.61,
+   "worst_trade_r": -2.82,
+   "losses_bigger_than_risk": 46,
+   "profit_factor": 1.49,
+   "profitable_months": "30 of 52",
+   "worst_month": "2026-03 -674",
+   "max_open_positions": 2,
+   "max_open_at_day_close": 0,
+   "max_leverage_any_time": 7.3,
+   "max_gross_exposure": 0.0,
+   "max_leverage": 0.0,
+   "median_leverage": 0.0,
+   "account_hit_zero_on": null
+  },
+  "runs": [
+   "A11 MNQ 15-min",
+   "A12 XAUUSD 1-hour"
+  ]
+ },
+ "passed every check, position \u2264 5\u00d7 balance": {
+  "summary": {
+   "start": "2022-07-01",
+   "end": "2026-10-05",
+   "months": 51.2,
+   "capital": 10000.0,
+   "risk_pct": 2.0,
+   "trades_offered": 588,
+   "trades_taken": 464,
+   "trades_per_month": 9.1,
+   "skipped": {
+    "MNQ: one minimum size exceeds the 2.0% risk (or the size cap)": 124
+   },
+   "final_equity": 24031.99,
+   "net": 14031.99,
+   "return_pct": 140.3,
+   "cagr_pct": 22.8,
+   "max_dd_usd": -1728.98,
+   "max_dd_pct": -12.2,
+   "win_pct": 54.5,
+   "avg_win_r": 0.74,
+   "avg_loss_r": -0.61,
+   "worst_trade_r": -2.82,
+   "losses_bigger_than_risk": 46,
+   "profit_factor": 1.49,
+   "profitable_months": "29 of 52",
+   "worst_month": "2026-03 -674",
+   "max_open_positions": 2,
+   "max_open_at_day_close": 0,
+   "max_leverage_any_time": 7.3,
+   "max_gross_exposure": 0.0,
+   "max_leverage": 0.0,
+   "median_leverage": 0.0,
+   "account_hit_zero_on": null
+  },
+  "runs": [
+   "A11 MNQ 15-min",
+   "A12 XAUUSD 1-hour"
+  ]
+ },
+ "profitable out-of-sample (looser), no size cap": {
+  "summary": {
+   "start": "2017-07-25",
+   "end": "2026-11-09",
+   "months": 111.5,
+   "capital": 10000.0,
+   "risk_pct": 2.0,
+   "trades_offered": 1734,
+   "trades_taken": 1430,
+   "trades_per_month": 12.8,
+   "skipped": {
+    "MGC: one minimum size exceeds the 2.0% risk (or the size cap)": 1,
+    "MNQ: one minimum size exceeds the 2.0% risk (or the size cap)": 303
+   },
+   "final_equity": 26822.44,
+   "net": 16822.44,
+   "return_pct": 168.2,
+   "cagr_pct": 11.2,
+   "max_dd_usd": -6032.88,
+   "max_dd_pct": -22.0,
+   "win_pct": 53.1,
+   "avg_win_r": 0.61,
+   "avg_loss_r": -0.58,
+   "worst_trade_r": -5.12,
+   "losses_bigger_than_risk": 153,
+   "profit_factor": 1.14,
+   "profitable_months": "57 of 113",
+   "worst_month": "2025-02 -2,861",
+   "max_open_positions": 4,
+   "max_open_at_day_close": 1,
+   "max_leverage_any_time": 13.4,
+   "max_gross_exposure": 96420.0,
+   "max_leverage": 7.4,
+   "median_leverage": 0.0,
+   "account_hit_zero_on": null
+  },
+  "runs": [
+   "A11 MNQ 15-min",
+   "A11 XAUUSD 1-hour",
+   "A05 MNQ 1-hour",
+   "A02 MNQ 15-min",
+   "A12 MGC 15-min",
+   "A04 MNQ 1-hour"
+  ]
+ },
+ "profitable out-of-sample (looser), position \u2264 5\u00d7 balance": {
+  "summary": {
+   "start": "2017-07-25",
+   "end": "2026-11-09",
+   "months": 111.5,
+   "capital": 10000.0,
+   "risk_pct": 2.0,
+   "trades_offered": 1734,
+   "trades_taken": 1400,
+   "trades_per_month": 12.6,
+   "skipped": {
+    "MGC: one minimum size exceeds the 2.0% risk (or the size cap)": 1,
+    "MNQ: one minimum size exceeds the 2.0% risk (or the size cap)": 333
+   },
+   "final_equity": 26805.54,
+   "net": 16805.54,
+   "return_pct": 168.1,
+   "cagr_pct": 11.2,
+   "max_dd_usd": -5045.55,
+   "max_dd_pct": -18.9,
+   "win_pct": 53.2,
+   "avg_win_r": 0.61,
+   "avg_loss_r": -0.57,
+   "worst_trade_r": -5.12,
+   "losses_bigger_than_risk": 150,
+   "profit_factor": 1.15,
+   "profitable_months": "59 of 113",
+   "worst_month": "2025-02 -2,470",
+   "max_open_positions": 4,
+   "max_open_at_day_close": 1,
+   "max_leverage_any_time": 12.1,
+   "max_gross_exposure": 57852.0,
+   "max_leverage": 4.5,
+   "median_leverage": 0.0,
+   "account_hit_zero_on": null
+  },
+  "runs": [
+   "A11 MNQ 15-min",
+   "A11 XAUUSD 1-hour",
+   "A05 MNQ 1-hour",
+   "A02 MNQ 15-min",
+   "A12 MGC 15-min",
+   "A04 MNQ 1-hour"
+  ]
+ }
+}

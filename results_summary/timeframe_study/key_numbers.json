@@ -1,0 +1,660 @@
+{
+  "by_tf": [
+    {
+      "bars": "1-min",
+      "runs": 1,
+      "median trades / month": 374.3,
+      "profitable full history": 0,
+      "walk-forward possible": 1,
+      "profitable out-of-sample": 0,
+      "passed all key checks": 0,
+      "hit $0 somewhere": 0,
+      "median win %": 45.4,
+      "median PF": 0.82
+    },
+    {
+      "bars": "5-min",
+      "runs": 70,
+      "median trades / month": 34.0,
+      "profitable full history": 5,
+      "walk-forward possible": 70,
+      "profitable out-of-sample": 8,
+      "passed all key checks": 0,
+      "hit $0 somewhere": 41,
+      "median win %": 55.3,
+      "median PF": 0.78
+    },
+    {
+      "bars": "15-min",
+      "runs": 70,
+      "median trades / month": 20.0,
+      "profitable full history": 22,
+      "walk-forward possible": 70,
+      "profitable out-of-sample": 22,
+      "passed all key checks": 0,
+      "hit $0 somewhere": 20,
+      "median win %": 61.1,
+      "median PF": 0.94
+    },
+    {
+      "bars": "1-hour",
+      "runs": 70,
+      "median trades / month": 5.7,
+      "profitable full history": 35,
+      "walk-forward possible": 67,
+      "profitable out-of-sample": 37,
+      "passed all key checks": 4,
+      "hit $0 somewhere": 3,
+      "median win %": 63.9,
+      "median PF": 1.0
+    },
+    {
+      "bars": "4-hour",
+      "runs": 69,
+      "median trades / month": 2.1,
+      "profitable full history": 53,
+      "walk-forward possible": 68,
+      "profitable out-of-sample": 50,
+      "passed all key checks": 15,
+      "hit $0 somewhere": 0,
+      "median win %": 65.5,
+      "median PF": 1.2
+    },
+    {
+      "bars": "daily",
+      "runs": 93,
+      "median trades / month": 0.5,
+      "profitable full history": 84,
+      "walk-forward possible": 62,
+      "profitable out-of-sample": 54,
+      "passed all key checks": 26,
+      "hit $0 somewhere": 0,
+      "median win %": 65.7,
+      "median PF": 2.05
+    }
+  ],
+  "robust_runs": 45,
+  "robust_runs_10_per_month": 0,
+  "robust_distinct": 36,
+  "robust_distinct_trades_per_month": 61.4,
+  "runs": 373,
+  "errors": 0,
+  "broke": [
+    {
+      "code": "A01",
+      "market": "NAS100",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "2.0"
+    },
+    {
+      "code": "A01",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2016-11-09",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "4.0"
+    },
+    {
+      "code": "A01",
+      "market": "MGC",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2021-09-15",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "4.0"
+    },
+    {
+      "code": "A01",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A02",
+      "market": "XAUUSD",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A03",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2017-06-09",
+      "wf_capital_exhausted_on": "2018-09-12",
+      "stress_scenarios_breached": "8.0"
+    },
+    {
+      "code": "A03",
+      "market": "MGC",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A03",
+      "market": "MGC",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2019-12-05",
+      "wf_capital_exhausted_on": "2023-12-15",
+      "stress_scenarios_breached": "7.0"
+    },
+    {
+      "code": "A03",
+      "market": "XAUUSD",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "4.0"
+    },
+    {
+      "code": "A03",
+      "market": "NAS100",
+      "session": "rth",
+      "bars": "15m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A03",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "2.0"
+    },
+    {
+      "code": "A04",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2017-06-09",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "3.0"
+    },
+    {
+      "code": "A04",
+      "market": "XAUUSD",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A05",
+      "market": "NAS100",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": "2015-08-21",
+      "wf_capital_exhausted_on": "2020-02-25",
+      "stress_scenarios_breached": "8.0"
+    },
+    {
+      "code": "A05",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2013-12-16",
+      "wf_capital_exhausted_on": "2017-08-30",
+      "stress_scenarios_breached": "8.0"
+    },
+    {
+      "code": "A05",
+      "market": "MGC",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": "2020-05-29",
+      "wf_capital_exhausted_on": "2024-04-03",
+      "stress_scenarios_breached": "7.0"
+    },
+    {
+      "code": "A05",
+      "market": "MGC",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2017-03-22",
+      "wf_capital_exhausted_on": "2020-04-07",
+      "stress_scenarios_breached": "7.0"
+    },
+    {
+      "code": "A05",
+      "market": "XAUUSD",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2023-11-13",
+      "wf_capital_exhausted_on": "2026-03-23",
+      "stress_scenarios_breached": "8.0"
+    },
+    {
+      "code": "A05",
+      "market": "NAS100",
+      "session": "rth",
+      "bars": "15m",
+      "capital_exhausted_on": "2016-02-25",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "0.0"
+    },
+    {
+      "code": "A05",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": "2016-01-04",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "3.0"
+    },
+    {
+      "code": "A05",
+      "market": "MGC",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": "2019-06-21",
+      "wf_capital_exhausted_on": "2025-10-06",
+      "stress_scenarios_breached": "7.0"
+    },
+    {
+      "code": "A05",
+      "market": "MGC",
+      "session": "full",
+      "bars": "60m",
+      "capital_exhausted_on": "2025-01-06",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "0.0"
+    },
+    {
+      "code": "A06",
+      "market": "NAS100",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": "2019-08-05",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "6.0"
+    },
+    {
+      "code": "A06",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2014-06-19",
+      "wf_capital_exhausted_on": "2017-03-21",
+      "stress_scenarios_breached": "8.0"
+    },
+    {
+      "code": "A06",
+      "market": "MGC",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": "2024-06-17",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "4.0"
+    },
+    {
+      "code": "A06",
+      "market": "MGC",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2018-05-14",
+      "wf_capital_exhausted_on": "2023-07-06",
+      "stress_scenarios_breached": "7.0"
+    },
+    {
+      "code": "A06",
+      "market": "XAUUSD",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A06",
+      "market": "XAUUSD",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2025-01-17",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "4.0"
+    },
+    {
+      "code": "A06",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "3.0"
+    },
+    {
+      "code": "A06",
+      "market": "MGC",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "2.0"
+    },
+    {
+      "code": "A07",
+      "market": "MNQ",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2023-03-09",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "7.0"
+    },
+    {
+      "code": "A07",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2013-04-17",
+      "wf_capital_exhausted_on": "2015-02-19",
+      "stress_scenarios_breached": "8.0"
+    },
+    {
+      "code": "A07",
+      "market": "MGC",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2016-08-11",
+      "wf_capital_exhausted_on": "2018-03-20",
+      "stress_scenarios_breached": "7.0"
+    },
+    {
+      "code": "A07",
+      "market": "XAUUSD",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2022-04-22",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "8.0"
+    },
+    {
+      "code": "A07",
+      "market": "NAS100",
+      "session": "rth",
+      "bars": "15m",
+      "capital_exhausted_on": "2018-03-23",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "0.0"
+    },
+    {
+      "code": "A07",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": "2014-07-17",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "4.0"
+    },
+    {
+      "code": "A07",
+      "market": "MGC",
+      "session": "rth",
+      "bars": "15m",
+      "capital_exhausted_on": "2024-01-17",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "0.0"
+    },
+    {
+      "code": "A07",
+      "market": "MGC",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": "2017-12-07",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "4.0"
+    },
+    {
+      "code": "A07",
+      "market": "XAUUSD",
+      "session": "rth",
+      "bars": "15m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A07",
+      "market": "XAUUSD",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": "2024-06-07",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A12",
+      "market": "MNQ",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A12",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2013-09-19",
+      "wf_capital_exhausted_on": "2014-02-17",
+      "stress_scenarios_breached": "8.0"
+    },
+    {
+      "code": "A12",
+      "market": "MGC",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2017-05-24",
+      "wf_capital_exhausted_on": "2018-05-10",
+      "stress_scenarios_breached": "7.0"
+    },
+    {
+      "code": "A12",
+      "market": "XAUUSD",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2022-10-28",
+      "wf_capital_exhausted_on": "2024-08-23",
+      "stress_scenarios_breached": "8.0"
+    },
+    {
+      "code": "A12",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "3.0"
+    },
+    {
+      "code": "A12",
+      "market": "MGC",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": "2021-09-22",
+      "wf_capital_exhausted_on": "2022-07-08",
+      "stress_scenarios_breached": "7.0"
+    },
+    {
+      "code": "A12",
+      "market": "XAUUSD",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "B01",
+      "market": "MGC",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A01",
+      "market": "XAUUSD",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "2.0"
+    },
+    {
+      "code": "A02",
+      "market": "NAS100",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A02",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "2.0"
+    },
+    {
+      "code": "A02",
+      "market": "MGC",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2022-01-03",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A03",
+      "market": "NAS100",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "3.0"
+    },
+    {
+      "code": "A03",
+      "market": "MGC",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A04",
+      "market": "MGC",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2022-04-06",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "2.0"
+    },
+    {
+      "code": "A05",
+      "market": "MNQ",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": "2025-04-04",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "3.0"
+    },
+    {
+      "code": "A05",
+      "market": "XAUUSD",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": "2025-05-08",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "2.0"
+    },
+    {
+      "code": "A05",
+      "market": "XAUUSD",
+      "session": "full",
+      "bars": "15m",
+      "capital_exhausted_on": "2025-10-20",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "3.0"
+    },
+    {
+      "code": "A06",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "60m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    },
+    {
+      "code": "A07",
+      "market": "NAS100",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": "2013-05-29",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "5.0"
+    },
+    {
+      "code": "A07",
+      "market": "MGC",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": "2018-05-02",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "3.0"
+    },
+    {
+      "code": "A07",
+      "market": "XAUUSD",
+      "session": "rth",
+      "bars": "5m",
+      "capital_exhausted_on": "2024-05-29",
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "0.0"
+    },
+    {
+      "code": "A07",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "60m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "2.0"
+    },
+    {
+      "code": "A11",
+      "market": "NAS100",
+      "session": "full",
+      "bars": "5m",
+      "capital_exhausted_on": NaN,
+      "wf_capital_exhausted_on": NaN,
+      "stress_scenarios_breached": "1.0"
+    }
+  ]
+}
