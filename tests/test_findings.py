@@ -11,7 +11,8 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from engine import Engine, Settings, Strategy, check_lookahead, data, metrics, montecarlo, stress, walkforward  # noqa: E402
+from engine import Engine, Settings, Strategy, check_lookahead, data, get_instrument, metrics, montecarlo, stress, walkforward  # noqa: E402
+from engine.loader import load_strategy  # noqa: E402
 from engine.instruments import Instrument  # noqa: E402
 from engine.parallel import Job  # noqa: E402
 from test_engine import FREE, CFD, Script, bars  # noqa: E402
@@ -270,13 +271,12 @@ def test_futures_limit_entry_needs_trade_through_at_the_open(side):
     assert len(r["trades"]) == 0                    # 100 only touched, never traded through by a tick
 
 
-def test_resampled_bars_split_at_the_roll():
+def test_resampled_bars_keep_one_bar_per_bucket_and_flag_a_roll_inside():
     rows = [(100 + k, 100 + k, 100 + k, 100 + k) for k in range(10)]
     r = data.resample(bars(rows, contracts=["A"] * 7 + ["B"] * 3), 5)   # switch at minute 7, inside bar 2
-    assert list(r.contract) == ["A", "A", "B"] and list(r.roll) == [False, False, True]
-    assert list(r.ts - r.ts.iloc[0]) == [0, 300, 420]                  # second bar split at the switch
+    assert len(r) == 2 and list(r.roll) == [False, False] and list(r.roll_inside) == [False, True]
     r2 = data.resample(bars(rows, contracts=["A"] * 5 + ["B"] * 5), 5)  # switch exactly on a bar boundary
-    assert list(r2.roll) == [False, True] and len(r2) == 2
+    assert list(r2.roll) == [False, True] and list(r2.roll_inside) == [False, False]
 
 
 def test_guard_blocks_every_slice_that_reaches_a_later_bar():
@@ -364,7 +364,7 @@ def test_resampled_roll_costs_match_one_minute(case, expected):
     m = lambda k: t0 + 60 * k                                     # noqa: E731
     # (decide-to-enter minute, decide-to-exit minute): fills happen at the next bar's open
     plan = {"close_before_switch": (m(2), m(5)), "hold_through_switch": (m(2), m(8)),
-            "hold_to_final_bar": (m(2), None), "open_after_switch": (m(7), None)}[case]
+            "hold_to_final_bar": (m(2), None), "open_after_switch": (m(8), None)}[case]
 
     class Plan(Strategy):
         def on_bar(self, i):
@@ -407,3 +407,29 @@ def test_verifier_marks_missing_second_data_unresolved(monkeypatch):
     monkeypatch.setattr(v, "seconds", lambda t0, t1, c: pd.DataFrame(columns=["ts", "o", "h", "l", "c"]))
     assert v.replay_trade(1, 0, 100.0, 98.0, 104.0, 1, 10.0, 0.0, 0.0, 0.25, 999, "X") is None
     assert v.first_second(pd.DataFrame(columns=["ts", "o", "h", "l", "c"]), 1, 100.0, "stop") is None
+
+
+def test_stress_volatility_split_handles_split_daily_bars(monkeypatch):
+    # futures daily bars can be split at a contract switch: two bars on one trading day must not crash
+    days = np.array(["2024-01-03", "2024-01-04", "2024-01-05"], dtype="datetime64[D]")
+    trades = pd.DataFrame({"pnl": [10.0, -5.0], "exit_tday": days[[0, 2]]})
+    daily = pd.DataFrame({"tday": days, "equity": [100010.0, 100010, 100005], "start_equity": 100000.0})
+
+    def fake(jobs, workers=None, progress=True):
+        base = {"summary": {"trades": 2, "net_pnl": 5.0}, "trades": trades, "daily": daily, "days": days}
+        return [base] + [{"summary": {"trades": 2, "net_pnl": 5.0}} for _ in jobs[1:]]
+    monkeypatch.setattr(stress, "run_many", fake)
+    bars_ = pd.DataFrame({"tday": np.array(["2024-01-03", "2024-01-03", "2024-01-04", "2024-01-05"], dtype="datetime64[D]"),
+                          "h": [101.0, 103, 102, 101], "l": [99.0, 100, 98, 100], "c": [100.0, 102, 101, 100]})
+    out = stress.run(Job("s.py", "GC", 1440, FREE, Settings()), bars_)
+    assert out["volatility_regime"].trades.sum() == 2
+
+
+def test_notional_sizing_uses_the_real_futures_price():
+    # back-adjusted price 150 (= real 100 + 50 adjustment): $10,000 of contract value at $1/pt = 100 contracts, not 66
+    rows = [(150, 150, 150, 150)] * 4
+    df = bars(rows)
+    df["adj"] = 50.0
+    one = Instrument("ONE", point_value=1.0, tick=0.25, commission=0.0, slippage_ticks=0, qty_step=1)
+    t = run(df, one, {0: [("buy", dict(notional_usd=10_000))]})["trades"].iloc[0]
+    assert t.qty == 100

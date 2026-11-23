@@ -17,6 +17,8 @@ def _bars(res: dict) -> pd.DataFrame:
     out = eq[["tday", "equity"]].copy()
     out["equity_open"] = eq["equity_open"] if "equity_open" in eq else eq["equity"]
     out["equity_low"] = eq["equity_low"] if "equity_low" in eq else eq["equity"]
+    if "breach" in eq:
+        out["breach"] = eq["breach"]
     return out
 
 
@@ -66,20 +68,28 @@ def summarize(res: dict) -> dict:
     else:
         dd_bar = pct_bar = np.array([0.0])
         dd = pd.Series(dtype=float)
+    low_mark = np.minimum(bars.equity.to_numpy(), bars.equity_open.to_numpy()) if len(bars) and "equity_open" in bars \
+        else (bars.equity.to_numpy() if len(bars) else np.array([]))
+    broke = bars.tday[low_mark <= 0] if len(bars) else pd.Series(dtype=object)       # marked at an open or a close
+    if len(bars) and "breach" in bars:                       # also a breach the engine saw right after an entry fill
+        broke = bars.tday[(low_mark <= 0) | bars.breach.fillna(False).to_numpy(dtype=bool)]
     out = {"instrument": res["instrument"].name, "start": str(de.index.min())[:10] if len(de) else None,
            "end": str(de.index.max())[:10] if len(de) else None, "capital": cap,
+           "account_model": "constrained" if getattr(res["settings"], "account_constrained", False) else "unconstrained",
+           "capital_exhausted_on": str(broke.iloc[0])[:10] if len(broke) else None,
            "trading_days": int(len(de)), "trades": int(len(t)), "skipped_orders": res["skipped"],
            "notes": res.get("notes", {})}
     if len(t) == 0:
         return out
-    years = max((pd.Timestamp(out["end"]) - pd.Timestamp(out["start"])).days / 365.25, 1e-9)
+    span_days = (pd.Timestamp(out["end"]) - pd.Timestamp(out["start"])).days
+    years = span_days / 365.25 if span_days > 0 else None          # a one-day test has no meaningful annual rate
     under = (dd.values < -1e-9)
     wins, losses = t[t.pnl > 0], t[t.pnl <= 0]
     gp, gl = wins.pnl.sum(), -losses.pnl.sum()
     out.update({
         "net_pnl": round(t.pnl.sum(), 2),
         "return_pct": round(t.pnl.sum() / cap * 100, 2),
-        "annual_return_pct_simple": round(t.pnl.sum() / cap * 100 / years, 2),
+        "annual_return_pct_simple": round(t.pnl.sum() / cap * 100 / years, 2) if years else None,
         "win_rate_pct": round(len(wins) / len(t) * 100, 2),
         "profit_factor": round(gp / gl, 3) if gl > 0 else float("inf"),
         "avg_win": round(wins.pnl.mean(), 2) if len(wins) else 0.0,
@@ -94,7 +104,7 @@ def summarize(res: dict) -> dict:
         "best_day": round(dpnl.max(), 2), "worst_day": round(dpnl.min(), 2),
         "best_day_share_of_profit_pct": round(dpnl.max() / t.pnl.sum() * 100, 1) if t.pnl.sum() > 0 else None,
         "max_consecutive_losses": _max_streak((t.pnl <= 0).values),
-        "trades_per_year": round(len(t) / years, 1),
+        "trades_per_year": round(len(t) / years, 1) if years else None,
         "avg_bars_held": round(t.bars.mean(), 1),
         "total_costs": round(t.costs.sum(), 2),
         "of_which_slippage": round(t.slippage_usd.sum(), 2),
@@ -171,7 +181,7 @@ def score(summary: dict, objective: str = "sharpe", min_trades: int = 30) -> flo
 
 def result_from_bars(trades: pd.DataFrame, bars: pd.DataFrame, settings, inst, skipped=None, notes=None) -> dict:
     """Result from a window's per-bar equity (tday, equity_open, equity_low, equity)."""
-    eq = bars.reset_index(drop=True)[["tday", "equity_open", "equity_low", "equity"]].copy()
+    eq = bars.reset_index(drop=True)[["tday", "equity_open", "equity_low", "equity"] + (["breach"] if "breach" in bars else [])].copy()
     eq["tday"] = eq.tday.to_numpy().astype("datetime64[D]")
     return {"trades": trades.reset_index(drop=True), "equity": eq, "skipped": skipped or {}, "notes": notes or {},
             "settings": settings, "instrument": inst}
@@ -189,7 +199,7 @@ def stitch_bars(parts: list[pd.DataFrame], capital: float) -> pd.DataFrame:
         for c in ("equity_open", "equity_low", "equity"):
             q[c] = q[c] + shift
         level = q.equity.iloc[-1]
-        out.append(q[["tday", "equity_open", "equity_low", "equity"]])
+        out.append(q[["tday", "equity_open", "equity_low", "equity"] + (["breach"] if "breach" in q else [])])
     if not out:
         return pd.DataFrame({"tday": np.array([], dtype="datetime64[D]"), "equity_open": [], "equity_low": [], "equity": []})
     return pd.concat(out, ignore_index=True)

@@ -36,6 +36,7 @@ def main():
     ap.add_argument("--symbol", default="NQ", help="NQ, MNQ, GC, MGC, XAUUSD, NAS100 (comma-separated for several)")
     ap.add_argument("--data", default=None, help="override the dataset, e.g. NAS100_RTH")
     ap.add_argument("--tf", type=int, default=1, help="bar size in minutes (1, 5, 15, 60, 240, 1440)")
+    ap.add_argument("--session", default="full", choices=["full", "rth"], help="rth = New York cash session 09:30-16:00 only")
     ap.add_argument("--start"); ap.add_argument("--end")
     ap.add_argument("--capital", type=float, default=50_000)
     ap.add_argument("--commission", type=float, help="$ per side per contract/lot")
@@ -43,6 +44,7 @@ def main():
     ap.add_argument("--spread", type=float, help="fixed spread in points (instruments without bid/ask)")
     ap.add_argument("--set", nargs="*", help="strategy parameters, key=value")
     ap.add_argument("--no-lookahead-check", action="store_true")
+    ap.add_argument("--force", action="store_true", help="publish results even if the look-ahead check fails (recorded)")
     a = ap.parse_args()
 
     cls = load_strategy(a.strategy)
@@ -55,14 +57,21 @@ def main():
         t0 = time.time()
         key = a.data or inst.data_key
         check_dataset(inst.name, key)
-        df = data.resample(data.load(key, a.start, a.end), a.tf)
+        df = data.resample(data.load(key, a.start, a.end), a.tf, a.session)
         strat = cls(**params)
         la = "skipped"
         if not a.no_lookahead_check:
-            bad = check_lookahead(lambda: cls(**params), df.iloc[max(0, len(df) - 300_000):], inst, Settings(capital=a.capital))
-            la = "passed" if not bad else "FAILED: " + "; ".join(bad)
+            bad = check_lookahead(lambda: cls(**params), df, inst, Settings(capital=a.capital))
+            span = f"{str(df.tday.iloc[0])[:10]} to {str(df.tday.iloc[-1])[:10]}, {len(df):,} bars" if len(df) else "no bars"
+            la = f"passed ({span})" if not bad else f"FAILED ({span}): " + "; ".join(bad)
+            if bad and not a.force:
+                raise SystemExit(f"!! look-ahead check {la}. Nothing was saved. Fix the strategy, or pass --force "
+                                 f"to publish anyway (the failure is then recorded in the report).")
             if bad:
-                print(f"!! LOOK-AHEAD: {la}  (results below are not trustworthy)")
+                la += " -- published anyway with --force; results are not trustworthy"
+                print(f"!! LOOK-AHEAD: {la}")
+        else:
+            la = "skipped (--no-lookahead-check)"
         res = Engine(df, inst, strat, Settings(capital=a.capital)).run()
         out = report.save(res, Path(a.strategy).stem, strat.p, extra={"timeframe_min": a.tf, "lookahead_check": la,
                                                                       "costs": {"commission": inst.commission, "slippage_ticks": inst.slippage_ticks,

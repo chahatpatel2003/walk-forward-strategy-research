@@ -65,3 +65,28 @@ def trading_days(start, end) -> pd.DatetimeIndex:
     h = holidays()
     b = pd.bdate_range(start, end)
     return b[[x.date() not in h for x in b]]
+
+
+@lru_cache(maxsize=None)
+def _cal_days() -> np.ndarray:
+    return trading_days("2010-01-01", "2030-12-31").values.astype("datetime64[D]")
+
+
+def period_position(days, freq: str = "M") -> pd.DataFrame:
+    """For each date (trading days and futures holiday sessions alike), its place in its calendar month
+    ('M') or ISO week ('W') according to the exchange calendar (known in advance, so not look-ahead):
+      n_in_period   trading days in the period up to and including this date
+      left          trading days remaining in the period after this date (0 = last trading day)"""
+    cal = _cal_days()
+    d = np.asarray(days).astype("datetime64[D]")
+    if freq == "M":
+        key_cal = cal.astype("datetime64[M]")
+        key_d = d.astype("datetime64[M]")
+    else:
+        # ISO week key: the Monday of the week
+        key_cal = cal - ((cal.astype("datetime64[D]").view("int64") - 4) % 7).astype("timedelta64[D]")
+        key_d = d - ((d.view("int64") - 4) % 7).astype("timedelta64[D]")
+    upto = np.searchsorted(cal, d, "right")                       # calendar days <= date
+    start = np.searchsorted(key_cal, key_d, "left")              # first calendar day of the period
+    end = np.searchsorted(key_cal, key_d, "right")               # one past its last
+    return pd.DataFrame({"n_in_period": upto - start, "left": end - upto})

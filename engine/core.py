@@ -33,7 +33,9 @@ import pandas as pd
 from .instruments import Instrument
 
 # Columns the engine fills against. A strategy's prepare() must not change them.
-PROTECTED = ("ts", "o", "h", "l", "c", "bo", "bh", "bl", "bc", "ao", "ah", "al", "ac", "roll", "contract", "tday")
+PROTECTED = ("ts", "o", "h", "l", "c", "bo", "bh", "bl", "bc", "ao", "ah", "al", "ac", "roll", "contract", "tday",
+             # execution metadata: roll charges and the conversion of adjusted fills to real prices
+             "roll_inside", "adj", "adj_open", "raw_o", "raw_h", "raw_l", "raw_c")
 
 
 @dataclass
@@ -53,6 +55,8 @@ class Order:
     tag: str
     placed_i: int
     expires_i: int | None
+    intraday: bool = False
+    last_fill_ts: int | None = None   # absolute: the order may fill only in a bar that STARTS at or before this time
 
 
 @dataclass
@@ -69,8 +73,10 @@ class Position:
     slippage_usd: float = 0.0
     rolls: int = 0
     spread_usd: float = 0.0   # bid/ask spread paid (already inside the fill prices; shown for information)
+    roll_slippage_usd: float = 0.0   # the slippage part of roll charges (inside BOTH costs and slippage_usd)
     mae: float = 0.0          # worst adverse excursion, points
     mfe: float = 0.0          # best favourable excursion, points
+    intraday: bool = False    # must not be held into another trading day
 
 
 @dataclass
@@ -85,6 +91,11 @@ class Settings:
     # windows: orders placed before this bar timestamp are ignored (indicator warm-up only)
     trade_start_ts: int | None = None
     max_leverage: float | None = None           # cap position notional at equity x this (None = no cap)
+    # Account model. Unconstrained (default, a research model): trading continues whatever the balance; the first
+    # bar whose marked equity is <= 0 is reported. Constrained: at that bar's close pending orders are cancelled,
+    # the position is closed at the very next open (reason 'capital_exhausted'; not subject to delay_bars) and no
+    # new orders are accepted, permanently (also in later walk-forward folds).
+    account_constrained: bool = False
 
 
 def _compact(series: pd.Series):
@@ -176,8 +187,11 @@ class Broker:
         self.skipped: dict = {}
         self.notes = {"ambiguous_entry_bars": 0, "ambiguous_exit_bars": 0, "orders_ignored_during_warmup": 0}
         self.i = 0
+        self.exhausted_i: int | None = None               # first bar whose marked equity was <= 0
+        self._liquidate = False                           # forced close at the next open (account constrained)
         self._close_req: tuple[str, int] | None = None   # (reason, bar it was FIRST requested on)
         self._new_sl = self._new_tp = None
+        self.decisions: list[int] = []                    # bars on which on_bar placed an order / close / stop change
 
     # ---- strategy API ----
     @property
@@ -201,7 +215,13 @@ class Broker:
     def sell(self, **kw): return self._order(-1, **kw)
 
     def _order(self, side, kind="market", price=None, qty=None, risk_usd=None, risk_pct=None, notional_usd=None,
-               sl=None, tp=None, sl_dist=None, tp_dist=None, tp_r=None, tag="", valid_bars=None):
+               sl=None, tp=None, sl_dist=None, tp_dist=None, tp_r=None, tag="", valid_bars=None, intraday=False,
+               last_fill_ts=None):
+        """intraday=True: the order expires if it hasn't filled by the end of the trading day it was placed on, and
+        the resulting position is closed at the first bar of a new trading day if still open (exit reason
+        'session_gap_exit': the data had no bar to close it in its own session).
+        last_fill_ts (epoch seconds): an absolute deadline checked by the engine before any fill: the order can fill
+        only in a bar whose start time is <= last_fill_ts, whatever bars are missing in between."""
         if kind not in ("market", "stop", "limit"):
             raise ValueError(kind)
         if kind != "market" and price is None:
@@ -210,11 +230,16 @@ class Broker:
         if ts0 is not None and self._d["ts"][self.i] < ts0:
             self.notes["orders_ignored_during_warmup"] += 1
             return None
+        if self.s.account_constrained and self.exhausted_i is not None:
+            self.notes["orders_refused_capital_exhausted"] = self.notes.get("orders_refused_capital_exhausted", 0) + 1
+            return None
         if qty is None and risk_usd is None and risk_pct is None and notional_usd is None:
             qty = self.inst.qty_step
         o = Order(side, kind, price, qty, risk_usd, risk_pct, notional_usd, sl, tp, sl_dist, tp_dist, tp_r, tag,
-                  self.i, None if valid_bars is None else self.i + valid_bars)
+                  self.i, None if valid_bars is None else self.i + valid_bars, intraday,
+                  None if last_fill_ts is None else int(last_fill_ts))
         self.orders.append(o)
+        self.decisions.append(self.i)
         return o
 
     def cancel_all(self):
@@ -225,9 +250,10 @@ class Broker:
         close is already pending does NOT restart the delay."""
         if self.pos is not None and self._close_req is None:
             self._close_req = (reason, self.i)
+            self.decisions.append(self.i)
 
-    def set_sl(self, price):  self._new_sl = price
-    def set_tp(self, price):  self._new_tp = price
+    def set_sl(self, price):  self._new_sl = price; self.decisions.append(self.i)
+    def set_tp(self, price):  self._new_tp = price; self.decisions.append(self.i)
 
     def bars_in_trade(self) -> int:
         return 0 if self.pos is None else self.i - self.pos.entry_i
@@ -298,19 +324,31 @@ class Engine:
     def _skip(self, why: str):
         self.b.skipped[why] = self.b.skipped.get(why, 0) + 1
 
-    def _half_spread(self, i: int) -> float:
-        return (self.d["ao"][i] - self.d["bo"][i]) / 2.0
+    def _half_spread(self, i: int, at: str = "o") -> float:
+        """Half the bid/ask spread at bar i's open (at='o') or close (at='c'). Fills inside a bar (stops, limits,
+        targets) have no contemporaneous quote in OHLC data: they are attributed the opening spread (an estimate;
+        the fill price itself always comes from the bar's bid/ask path)."""
+        return (self.d["a" + at][i] - self.d["b" + at][i]) / 2.0
 
     def _floor_qty(self, q: float) -> float:
         step = self.inst.qty_step
         return math.floor(q / step + 1e-9) * step
 
+    def _real(self, i: int, px: float) -> float:
+        """Real (unadjusted) price for contract value: back-adjusted price minus the adjustment of the contract the
+        bar OPENED with (on a bar where the contract switches inside, a fill can't be placed before or after the
+        switch from OHLC alone; the opening contract is the one the bar is labelled with)."""
+        if "adj_open" in self.d:
+            return px - self.d["adj_open"][i]
+        return px - self.d["adj"][i] if "adj" in self.d else px
+
     def _size(self, o: Order, fill: float, sl: float | None) -> float:
         pv = self.inst.point_value
+        real = abs(self._real(self.b.i, fill))
         if o.qty is not None:
             q = o.qty
         elif o.notional_usd is not None:
-            q = o.notional_usd / (abs(fill) * pv) if fill else 0.0
+            q = o.notional_usd / (real * pv) if real else 0.0
         else:
             if sl is None:
                 raise ValueError("risk-based sizing needs a stop-loss (sl or sl_dist)")
@@ -319,8 +357,8 @@ class Engine:
                 return 0.0
             budget = o.risk_usd if o.risk_usd is not None else self.b.equity * o.risk_pct / 100.0
             q = budget / risk_per_unit
-        if self.s.max_leverage is not None and fill:
-            q = min(q, self.b.equity * self.s.max_leverage / (abs(fill) * pv))
+        if self.s.max_leverage is not None and real:
+            q = min(q, self.b.equity * self.s.max_leverage / (real * pv))
         return self._floor_qty(q)
 
     def _open(self, o: Order, i: int, fill: float, slip_pts: float) -> bool:
@@ -343,18 +381,18 @@ class Engine:
         comm = self.inst.commission * qty
         self.b.pos = Position(o.side, qty, fill, i, sl, tp, sl, o.tag, costs=comm,
                               slippage_usd=slip_pts * self.inst.point_value * qty,
-                              spread_usd=self._half_spread(i) * self.inst.point_value * qty)
+                              spread_usd=self._half_spread(i) * self.inst.point_value * qty, intraday=o.intraday)
         self.b.realized -= comm
         self.b._close_req = None
         return True
 
-    def _exit(self, i: int, px: float, reason: str, slip_pts: float = 0.0):
+    def _exit(self, i: int, px: float, reason: str, slip_pts: float = 0.0, at: str = "o"):
         p = self.b.pos
         gross = (px - p.entry_px) * p.side * p.qty * self.inst.point_value
         comm = self.inst.commission * p.qty
         p.costs += comm
         p.slippage_usd += slip_pts * self.inst.point_value * p.qty
-        p.spread_usd += self._half_spread(i) * self.inst.point_value * p.qty
+        p.spread_usd += self._half_spread(i, at) * self.inst.point_value * p.qty
         self.b.realized += gross - comm
         risk = abs(p.entry_px - p.sl_initial) * p.qty * self.inst.point_value if p.sl_initial is not None else np.nan
         d = self.d
@@ -362,7 +400,8 @@ class Engine:
             "entry_time": d["ts"][p.entry_i], "exit_time": d["ts"][i], "side": "long" if p.side > 0 else "short",
             "qty": p.qty, "entry_px": p.entry_px, "exit_px": px, "sl": p.sl_initial, "tp": p.tp,
             "pnl_gross": gross, "costs": p.costs, "slippage_usd": p.slippage_usd, "spread_usd": p.spread_usd,
-            "pnl": gross - p.costs,
+            "roll_slippage_usd": p.roll_slippage_usd,
+            "pnl": gross - p.costs, "risk_usd": risk,
             "r": (gross - p.costs) / risk if risk and risk > 0 else np.nan,
             "bars": i - p.entry_i, "exit_reason": reason, "tag": p.tag, "rolls": p.rolls,
             "contract": d["contract"][p.entry_i], "mae_pts": p.mae, "mfe_pts": p.mfe,
@@ -419,11 +458,35 @@ class Engine:
                     self._exit(i, p.tp, "tp"); return True
         return False
 
+    def _charge_inside_roll(self, i: int, n_trades_before: int, ambiguous: bool):
+        """The contract switched inside bar i while a position was held after the bar's open: charge one roll
+        (both sides' commission + slippage). If the position entered or exited inside the bar, the order relative to
+        the switch is unknown and the roll is charged anyway (pessimistic, counted in notes)."""
+        slip, pv = self._slip(), self.inst.point_value
+        b = self.b
+        if ambiguous:
+            b.notes["roll_inside_bar_ambiguous"] = b.notes.get("roll_inside_bar_ambiguous", 0) + 1
+        if b.pos is not None:
+            p = b.pos
+            c = 2 * self.inst.commission * p.qty + 2 * slip * pv * p.qty
+            p.costs += c; p.slippage_usd += 2 * slip * pv * p.qty; p.roll_slippage_usd += 2 * slip * pv * p.qty
+            p.rolls += 1
+            b.realized -= c
+        elif len(b.trades) > n_trades_before:                    # exited inside this bar: charge the closed trade
+            t = b.trades[-1]
+            c = 2 * self.inst.commission * t["qty"] + 2 * slip * pv * t["qty"]
+            t["costs"] += c; t["slippage_usd"] += 2 * slip * pv * t["qty"]; t["rolls"] += 1; t["pnl"] -= c
+            t["roll_slippage_usd"] += 2 * slip * pv * t["qty"]
+            rk = t.get("risk_usd")
+            t["r"] = t["pnl"] / rk if rk and rk > 0 else np.nan          # R from the FINAL net P&L
+            b.realized -= c
+
     def _pre_exit_worst(self, adverse_pts: float, p: Position):
         """A target was reached inside this bar. 1-minute OHLC can't tell whether the bar's adverse extreme came
         before or after the target, so for drawdown it is assumed to have come BEFORE (pessimistic)."""
         eq = self.s.capital + self.b.realized + adverse_pts * p.qty * self.inst.point_value
         self._bar_worst = min(self._bar_worst, eq)
+        p.mae = max(p.mae, -adverse_pts)                 # same pessimistic path assumption in the trade export
 
     def _note_exit_ambiguity(self, i, p, entry_kind):
         self.b.notes["ambiguous_exit_bars"] = self.b.notes.get("ambiguous_exit_bars", 0) + 1
@@ -472,6 +535,12 @@ class Engine:
         for o in b.orders:
             if o.expires_i is not None and i > o.expires_i:
                 continue
+            if o.intraday and self.d["tday"][i] != self.d["tday"][o.placed_i]:
+                b.notes["intraday_orders_expired"] = b.notes.get("intraday_orders_expired", 0) + 1
+                continue
+            if o.last_fill_ts is not None and self.d["ts"][i] > o.last_fill_ts:
+                b.notes["orders_expired_at_deadline"] = b.notes.get("orders_expired_at_deadline", 0) + 1
+                continue
             live.append(o)
             if o.placed_i + delay >= i:
                 continue
@@ -497,12 +566,36 @@ class Engine:
             b.orders = [x for x in b.orders if x is not o]
         return None
 
+    def _breach(self, i: int, where: str):
+        """First observed breach (marked equity <= 0 at an open or a close). Constrained: cancel pending orders and
+        liquidate at the next executable open (an opening breach: this bar's open)."""
+        b = self.b
+        b.exhausted_i = i
+        b.notes["capital_exhausted_ts"] = int(self.d["ts"][i])
+        b.notes["capital_exhausted_at"] = where
+        if self.s.account_constrained:
+            b.orders = []
+            b._close_req = None
+            b._liquidate = b.pos is not None
+
+    def _post_fill_check(self, i: int):
+        """Equity right after an entry fill, marked at the opposite quote: the opening commission is paid and closing
+        at once would give back the slippage and the whole spread (fill - opposite quote = slippage + 2 x half
+        spread). Known at the fill, so at or below $0 it is a breach ('entry'); a constrained account then
+        liquidates at the next open, like any other breach."""
+        b, p = self.b, self.b.pos
+        post = self.s.capital + b.realized - (p.slippage_usd + 2.0 * p.spread_usd)
+        self._bar_worst = min(self._bar_worst, post)
+        if post <= 0 and b.exhausted_i is None:
+            self._breach(i, "entry")
+
     # ------------------------------------------------------------------- run
     def run(self) -> dict:
         d, b, st = self.d, self.b, self.strategy
         n = len(d["ts"])
         pv = self.inst.point_value
         roll = d["roll"] if "roll" in d else [0] * n
+        roll_in = d["roll_inside"] if "roll_inside" in d else None
         delay = self.s.delay_bars
         equity = np.empty(n)
         equity_low = np.empty(n)
@@ -516,7 +609,8 @@ class Engine:
             # 1. rolls
             if p is not None and roll[i] and self.s.charge_rolls:
                 c = 2 * self.inst.commission * p.qty + 2 * slip * pv * p.qty
-                p.costs += c; p.slippage_usd += 2 * slip * pv * p.qty; p.rolls += 1
+                p.costs += c; p.slippage_usd += 2 * slip * pv * p.qty; p.roll_slippage_usd += 2 * slip * pv * p.qty
+                p.rolls += 1
                 b.realized -= c
             # equity at the open (a held position marked at the opening quote): an observable peak
             if p is not None:
@@ -524,7 +618,25 @@ class Engine:
                 equity_open[i] = self.s.capital + b.realized + mo * p.qty * pv
             else:
                 equity_open[i] = self.s.capital + b.realized
-            # 2. at the open: requested close, then stop/target modifications, then gap exits
+            # Account breach at the OPEN: marked equity at the opening quote is observable, so a gap through $0
+            # is a breach even if the bar closes higher (constrained: liquidate at this open). Intrabar lows are
+            # NOT used to detect a breach (their timing is unknown from OHLC).
+            if equity_open[i] <= 0 and b.exhausted_i is None:
+                self._breach(i, "open")
+            # 2. at the open: forced liquidation first (account exhausted: the very next open, whatever
+            #    delay_bars says, and never relabelled as another exit); then an intraday position still open in
+            #    a new trading day (its own session ended without a bar to close it in), requested closes,
+            #    modifications, gap exits
+            if p is not None and b._liquidate:
+                px = (d["bo"][i] - slip) if p.side > 0 else (d["ao"][i] + slip)
+                self._exit(i, px, "capital_exhausted", slip)
+                p = None
+            b._liquidate = False
+            if p is not None and p.intraday and d["tday"][i] != d["tday"][p.entry_i]:
+                px = (d["bo"][i] - slip) if p.side > 0 else (d["ao"][i] + slip)
+                self._exit(i, px, "session_gap_exit", slip)
+                b.notes["session_gap_exits"] = b.notes.get("session_gap_exits", 0) + 1
+                p = None
             if p is not None and b._close_req is not None and i > b._close_req[1] + delay:
                 px = (d["bo"][i] - slip) if p.side > 0 else (d["ao"][i] + slip)
                 self._exit(i, px, b._close_req[0], slip)
@@ -535,16 +647,28 @@ class Engine:
                 if b._new_tp is not None: b.pos.tp = b._new_tp
             b._new_sl = b._new_tp = None
             exited_inside = False
-            if b.pos is not None and not self._gap_exit(i):
+            if b.pos is not None:
+                self._gap_exit(i)
+            n_trades = len(b.trades)
+            held_after_open = b.pos is not None
+            if b.pos is not None:
                 # 3. inside the bar: the held position's stop/target
                 exited_inside = self._intrabar_exit(i, None)
+            kind = None
             if b.orders:
                 if b.pos is None and not exited_inside:
                     kind = self._fill_entries(i)
                     if kind is not None:
+                        held_after_open = True
+                        self._post_fill_check(i)
                         self._intrabar_exit(i, kind)
                 else:
-                    b.orders = [o for o in b.orders if o.expires_i is None or i <= o.expires_i]
+                    b.orders = [o for o in b.orders if (o.expires_i is None or i <= o.expires_i)
+                                and not (o.intraday and d["tday"][i] != d["tday"][o.placed_i])
+                                and not (o.last_fill_ts is not None and d["ts"][i] > o.last_fill_ts)]
+            if roll_in is not None and roll_in[i] and held_after_open and self.s.charge_rolls:
+                self._charge_inside_roll(i, n_trades, ambiguous=exited_inside or (kind not in (None, "open"))
+                                         or len(b.trades) > n_trades)
             # 4. mark to market (close, and worst price inside the bar)
             p = b.pos
             base = self.s.capital + b.realized
@@ -561,12 +685,15 @@ class Engine:
                 equity[i] = equity_low[i] = base
             if self._bar_worst < equity_low[i]:
                 equity_low[i] = self._bar_worst
+            # account breach at the CLOSE: first bar whose marked equity is <= 0
+            if equity[i] <= 0 and b.exhausted_i is None:
+                self._breach(i, "close")
             # 5. strategy decides on the closed bar
             on_bar(i)
         if b.pos is not None:
             p = b.pos
             px = (d["bc"][n - 1] - slip) if p.side > 0 else (d["ac"][n - 1] + slip)
-            self._exit(n - 1, px, "end_of_data", slip)
+            self._exit(n - 1, px, "end_of_data", slip, at="c")
             equity[n - 1] = self.s.capital + b.realized
             equity_low[n - 1] = min(equity_low[n - 1], equity[n - 1])
         trades = pd.DataFrame(b.trades)
@@ -577,18 +704,24 @@ class Engine:
                 trades[c] = trades[c].to_numpy().astype("datetime64[D]")
         eq = pd.DataFrame({"ts": np.asarray(d["ts"]), "tday": np.asarray(d["tday"]).astype("datetime64[D]"),
                            "equity_open": equity_open, "equity": equity,
-                           "equity_low": np.minimum(np.minimum(equity_low, equity), equity_open)})
+                           "equity_low": np.minimum(np.minimum(equity_low, equity), equity_open),
+                           "breach": np.arange(n) == (b.exhausted_i if b.exhausted_i is not None else -1)})
         amb = pd.DataFrame(self.ambiguous, columns=["ts", "kind", "detail"])
         if len(amb):
             amb["time"] = pd.to_datetime(amb.ts, unit="s", utc=True)
         return {"trades": trades, "equity": eq, "skipped": b.skipped, "notes": dict(b.notes),
-                "ambiguous": amb, "settings": self.s, "instrument": self.inst}
+                "ambiguous": amb, "settings": self.s, "instrument": self.inst,
+                "decision_bars": sorted(set(b.decisions))}
 
 
 def _check_untouched(base: pd.DataFrame, prepared: pd.DataFrame):
     if len(prepared) != len(base):
         raise ValueError("prepare() must not add or remove rows")
     for c in PROTECTED:
+        if c not in base.columns:
+            if c in prepared.columns:
+                raise ValueError(f"prepare() created the engine column {c!r}; use another name")
+            continue
         if c in base.columns:
             if c not in prepared.columns:
                 raise ValueError(f"prepare() removed the column {c!r}")
@@ -610,6 +743,10 @@ class Strategy:
     def prepare(self, df: pd.DataFrame) -> pd.DataFrame:
         return df
 
+    def warmup_bars(self) -> int:
+        """Bars of history the indicators need before the first valid signal (used to size window warm-up)."""
+        return 0
+
     def on_bar(self, i: int):
         raise NotImplementedError
 
@@ -628,16 +765,64 @@ def _exits(t: pd.DataFrame, before) -> list[tuple]:
     return [tuple(r) for r in x[["entry_time", "exit_time", "exit_px", "exit_reason"]].itertuples(index=False)]
 
 
+EARLY_CUTS = (1, 2, 3, 5, 9, 17, 33, 65, 129)    # also cut the data in its first rows (a feature that peeks only there)
+BOUNDARY_CUTS = 16      # extra cuts right after the strategy's own decision bars and its signals' flips (half each)
+
+
+def signal_flips(full: pd.DataFrame, cols) -> list[int]:
+    """Rows where a prepared True/False signal column changes value (where a sparse future read would matter)."""
+    out = set()
+    for c in cols:
+        x = full[c]
+        if x.dtype == bool or (x.dtype == object and x.dropna().isin([True, False]).all() and x.notna().any()):
+            v = x.fillna(False).to_numpy(dtype=bool)
+            out.update((np.flatnonzero(v[1:] != v[:-1]) + 1).tolist())
+    return sorted(out)
+
+
+def boundary_cuts(decisions, flips, n: int, done, limit: int = BOUNDARY_CUTS) -> list[int]:
+    """Prefix lengths k = row + 1 right after decision rows and signal flips (the cut keeps that row and drops the
+    next one): an even sample of up to limit/2 of each, then topped up from either list, skipping cuts already done."""
+    def ks(rows):
+        return [k for k in sorted({int(r) + 1 for r in rows}) if 2 <= k < n and k not in done]
+    a, b = ks(decisions), ks(flips)
+    pick = lambda xs, m: [xs[int(j)] for j in np.unique(np.linspace(0, len(xs) - 1, m).round())] if m and xs else []  # noqa: E731
+    half = limit // 2
+    got = sorted(set(pick(a, min(half, len(a))) + pick(b, min(half, len(b)))))
+    rest = [k for k in a + b if k not in got]
+    return sorted(set(got + pick(rest, min(limit - len(got), len(rest)))))
+
+
+def _column_problems(make, base: pd.DataFrame, full: pd.DataFrame, cols, ks, why=None) -> tuple[list[str], set]:
+    """Re-run prepare() on each prefix of length k and compare every prepared column on the rows kept."""
+    problems, bad = [], {}
+    for k in ks:
+        try:
+            part = make().prepare(base.iloc[:k].copy()).reset_index(drop=True)
+        except Exception as e:            # prepare() must work on any prefix: failing means it needs later rows
+            problems.append(f"prepare() fails when only the first {k} rows exist ({type(e).__name__}: {e})"
+                            + (f" [{why(k)}]" if why else ""))
+            continue
+        for c in cols:
+            if c not in bad and (c not in part.columns or not _same(full[c].iloc[:k], part[c])):
+                bad[c] = k
+    return problems, bad
+
+
 def check_lookahead(strategy, df: pd.DataFrame, inst: Instrument | None = None, settings: Settings | None = None,
-                    cuts=(0.35, 0.6, 0.85)) -> list[str]:
+                    cuts=(0.35, 0.6, 0.85), coverage: dict | None = None) -> list[str]:
     """Detect use of future data. Returns a list of problems (empty = passed).
 
     1. prepare() may not change the prices the engine fills against.
-    2. Every column prepare() produces (new or changed) must be identical when future rows are removed.
-    3. (needs inst) on_bar() runs with guarded data: reading any bar after the current one is reported.
+    2. Every column prepare() produces (new or changed) must be identical when future rows are removed. This is a
+       SAMPLED check: prefixes cut at fixed fractions, in the first rows (EARLY_CUTS), right after rows where a
+       True/False signal flips, and (with inst) right after the strategy's own decision bars (BOUNDARY_CUTS in
+       all). A future read in a row that no cut separates from the row it reads is not seen.
+    3. (needs inst) on_bar() runs with guarded data over EVERY bar: reading any later bar is reported.
     4. (needs inst) Prefix test: on data cut at row k, the entries up to the cut and the exits completed
        before it must be identical to the full run's.
-    `strategy` may be an instance or a zero-argument factory (a new instance is needed per run)."""
+    `coverage` (a dict) is filled with what was sampled. `strategy` may be an instance or a zero-argument factory
+    (a new instance is needed per run)."""
     make = strategy if callable(strategy) and not isinstance(strategy, Strategy) else (lambda s=strategy: type(s)(**getattr(s, "p", {})))
     problems = []
     base = df.reset_index(drop=True)
@@ -647,34 +832,77 @@ def check_lookahead(strategy, df: pd.DataFrame, inst: Instrument | None = None, 
     except ValueError as e:
         problems.append(str(e))
     cols = [c for c in full.columns if c not in base.columns or not _same(base[c], full[c])]
-    bad = set()
+    col_cuts = sorted({int(len(base) * f) for f in cuts} | {k for k in EARLY_CUTS if k < len(base)})
+    flips = signal_flips(full, cols)
+    cov = coverage if coverage is not None else {}
+    cov.update({"fixed_cuts": len(col_cuts), "signal_flips": len(flips), "decision_rows": None, "boundary_cuts": 0})
+    p1, bad = _column_problems(make, base, full, cols, col_cuts)
+    problems += p1
+    if inst is None:
+        ks = boundary_cuts([], flips, len(base), set(col_cuts))
+        cov["boundary_cuts"] = len(ks)
+        p2, bad2 = _column_problems(make, base, full, cols, ks, why=lambda k: f"cut after signal row {k - 1}")
+        problems += p2
+        bad = {**bad2, **bad}
+        return problems + [f"column {c!r} changes when future rows are removed (first seen with {k} rows)"
+                           for c, k in sorted(bad.items())]
+    if problems or bad:
+        return problems + [f"column {c!r} changes when future rows are removed (first seen with {k} rows)"
+                           for c, k in sorted(bad.items())]
+    s = settings or Settings()
+    # (a) guarded run: any read of a later bar in on_bar() raises immediately
+    try:
+        res = Engine(base, inst, make(), s, guard=True).run()
+    except FutureReadError as e:
+        problems.append(f"on_bar() reads data from a later bar ({e})")
+        return problems
+    ref = res["trades"]
+    # (b) prepared features again, cut right after the strategy's own decisions and its signals' flips
+    dec = res.get("decision_bars", [])
+    ks = boundary_cuts(dec, flips, len(base), set(col_cuts))
+    cov.update({"decision_rows": len(dec), "boundary_cuts": len(ks)})
+    dset = set(dec)
+    p2, bad = _column_problems(make, base, full, cols, ks,
+                               why=lambda k: f"cut after {'decision' if k - 1 in dset else 'signal'} row {k - 1}")
+    problems += p2 + [f"column {c!r} changes when future rows are removed (cut after "
+                      f"{'decision' if k - 1 in dset else 'signal'} row {k - 1})" for c, k in sorted(bad.items())]
+    if problems:
+        return problems
+    # (c) prefix test: entries up to each cut, and exits completed before it, must not change
+    #     when later rows are removed
     for f in cuts:
         k = int(len(base) * f)
-        part = make().prepare(base.iloc[:k].copy()).reset_index(drop=True)
-        for c in cols:
-            if c not in part.columns or not _same(full[c].iloc[:k], part[c]):
-                bad.add(c)
-    problems += [f"column {c!r} changes when future rows are removed" for c in sorted(bad)]
-    if inst is not None and not problems:
-        s = settings or Settings()
-        # (a) guarded run: any read of a later bar in on_bar() raises immediately
-        try:
-            ref = Engine(base, inst, make(), s, guard=True).run()["trades"]
-        except FutureReadError as e:
-            problems.append(f"on_bar() reads data from a later bar ({e})")
-            return problems
-        # (b) prefix test: entries up to each cut, and exits completed before it, must not change
-        #     when later rows are removed
-        for f in cuts:
-            k = int(len(base) * f)
-            if k < 3:
-                continue
-            last_ts = pd.Timestamp(int(base.ts.iloc[k - 1]), unit="s", tz="UTC")
-            part = Engine(base.iloc[:k], inst, make(), s).run()["trades"]
-            if _entries(ref, last_ts) != _entries(part, last_ts) or _exits(ref, last_ts) != _exits(part, last_ts):
-                problems.append(f"trades up to row {k} change when later rows are removed (uses future data)")
-                break
+        if k < 3:
+            continue
+        last_ts = pd.Timestamp(int(base.ts.iloc[k - 1]), unit="s", tz="UTC")
+        part = Engine(base.iloc[:k], inst, make(), s).run()["trades"]
+        if _entries(ref, last_ts) != _entries(part, last_ts) or _exits(ref, last_ts) != _exits(part, last_ts):
+            problems.append(f"trades up to row {k} change when later rows are removed (uses future data)")
+            break
     return problems
+
+
+def check_boundary_cuts(strategy, df: pd.DataFrame, inst: Instrument, settings: Settings | None = None,
+                        cuts=(0.35, 0.6, 0.85), coverage: dict | None = None, engine=None, run_args=()) -> list[str]:
+    """Only the decision-bar / signal-flip part of check_lookahead (step 2's boundary cuts), for re-checking saved runs
+    that already passed the other steps with the same strategy code and data. `engine`/`run_args`: the pairs engine
+    and its second instrument (default: the single-market Engine)."""
+    make = strategy if callable(strategy) and not isinstance(strategy, Strategy) else (lambda s=strategy: type(s)(**getattr(s, "p", {})))
+    base = df.reset_index(drop=True)
+    full = make().prepare(base.copy()).reset_index(drop=True)
+    cols = [c for c in full.columns if c not in base.columns or not _same(base[c], full[c])]
+    done = set({int(len(base) * f) for f in cuts} | {k for k in EARLY_CUTS if k < len(base)})
+    flips = signal_flips(full, cols)
+    E = engine or Engine
+    res = E(base, inst, *run_args, make(), settings or Settings()).run()
+    dec = res.get("decision_bars", [])
+    ks = boundary_cuts(dec, flips, len(base), done)
+    if coverage is not None:
+        coverage.update({"signal_flips": len(flips), "decision_rows": len(dec), "boundary_cuts": len(ks)})
+    dset = set(dec)
+    problems, bad = _column_problems(make, base, full, cols, ks)
+    return problems + [f"column {c!r} changes when future rows are removed (cut after "
+                       f"{'decision' if k - 1 in dset else 'signal'} row {k - 1})" for c, k in sorted(bad.items())]
 
 
 def _same(a: pd.Series, b: pd.Series) -> bool:

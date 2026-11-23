@@ -16,9 +16,15 @@ RESULTS = Path(__file__).resolve().parent.parent / "results"
 
 def save(res: dict, name: str, params: dict | None = None, extra: dict | None = None) -> Path:
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out = RESULTS / f"{stamp}_{name}_{res['instrument'].name}"
-    _assert_not_data_path(out)
-    out.mkdir(parents=True, exist_ok=True)
+    base = f"{stamp}_{name}_{res['instrument'].name}"
+    for k in range(10_000):                          # a new folder per run, even two runs in the same second
+        out = RESULTS / (base if k == 0 else f"{base}_{k}")
+        _assert_not_data_path(out)
+        try:
+            out.mkdir(parents=True, exist_ok=False)
+            break
+        except FileExistsError:
+            continue
     summ = metrics.summarize(res)
     summ["params"] = params or {}
     if extra:
@@ -46,7 +52,7 @@ def save(res: dict, name: str, params: dict | None = None, extra: dict | None = 
 
 
 def text_summary(s: dict, yr: pd.DataFrame, mo: pd.DataFrame) -> str:
-    keys = ["instrument", "start", "end", "capital", "trades", "net_pnl", "return_pct", "annual_return_pct_simple",
+    keys = ["instrument", "start", "end", "capital", "account_model", "capital_exhausted_on", "trades", "net_pnl", "return_pct", "annual_return_pct_simple",
             "win_rate_pct", "profit_factor", "avg_win", "avg_loss", "payoff_ratio", "expectancy_per_trade", "avg_r",
             "max_drawdown_usd", "max_drawdown_pct", "longest_drawdown_days", "sharpe_daily_ann", "best_day", "worst_day",
             "best_day_share_of_profit_pct", "max_consecutive_losses", "trades_per_year", "avg_bars_held",

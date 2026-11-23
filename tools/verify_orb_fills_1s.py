@@ -87,9 +87,8 @@ def replay_trade(side, trigger_ts, entry_px, sl, tp, qty, pv, costs, slip, tick,
             return "sl", row.ts, px, (px - entry_px) * side * qty * pv - costs, same
         if tp_hit:
             return "tp", row.ts, tp, (tp - entry_px) * side * qty * pv - costs, same
-    last = sec.iloc[-1]
-    px = last.c - side * slip
-    return "end", int(last.ts), px, (px - entry_px) * side * qty * pv - costs, False
+    # the tape ended before a stop, a target or the flatten time: the outcome is not established (partial data)
+    return None
 
 
 def outcome(agree: bool, unresolved: bool) -> str:
@@ -193,7 +192,7 @@ def main():
         rows.append({"minute": e.exit_time,
                      "check": "C: exit in entry minute" if e.bars == 0 else "B: stop and target in one minute",
                      "adjustment": off, "engine": f"{e.exit_reason} @ {e.exit_px - off} (raw)",
-                     "one_second": "no 1-second data / no trigger" if rr is None else
+                     "one_second": "no 1-second data, no trigger, or the tape ends before an exit" if rr is None else
                                    f"{rr[0]} @ {rr[2]}" + (" (same second)" if rr[4] else ""),
                      "outcome": outcome(rr is not None and rr[0] == e.exit_reason, unresolved),
                      "engine_pnl": round(e.pnl, 2), "one_second_pnl": None if unresolved else round(rr[3], 2), "note": ""})

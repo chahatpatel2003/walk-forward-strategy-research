@@ -22,15 +22,38 @@ import numpy as np
 import pandas as pd
 
 PCTS = [1, 5, 25, 50, 75, 95, 99]
+BATCH_CELLS = 1e7          # simulated values per batch (bounds memory whatever the number of trades)
 
 
-def _paths(pnl: np.ndarray, n_sims: int, method: str, rng, block: int, skip_pct: float, haircut_pct: float):
+def block_starts(n: int, block: int, segments=None) -> int:
+    """Number of different blocks a daily block bootstrap can draw from n days (inside continuous segments only)."""
+    return len(valid_starts(n, block, segments))
+
+
+def valid_starts(n: int, block: int, segments=None) -> np.ndarray:
+    """Start days of every block that lies wholly inside one continuous segment (default: one segment = all days).
+    Segments are consecutive runs of days, e.g. walk-forward windows separated by skipped folds: a block never
+    joins P&L from different periods."""
+    segs = [n] if segments is None else [int(x) for x in segments]
+    if sum(segs) != n:
+        raise ValueError(f"segments add up to {sum(segs)} days, the series has {n}")
+    out, off = [], 0
+    for L in segs:
+        if L >= block:
+            out.append(off + np.arange(L - block + 1))
+        off += L
+    return np.concatenate(out) if out else np.array([], dtype=int)
+
+
+def _paths(pnl: np.ndarray, n_sims: int, method: str, rng, block: int, skip_pct: float, haircut_pct: float,
+           starts_ok: np.ndarray | None = None):
     n = len(pnl)
     if method == "shuffle":
         idx = np.argsort(rng.random((n_sims, n)), axis=1)
     elif method in ("bootstrap", "daily"):
         if method == "daily":
-            starts = rng.integers(0, max(1, n - block + 1), size=(n_sims, int(np.ceil(n / block))))
+            starts = rng.integers(0, len(starts_ok), size=(n_sims, int(np.ceil(n / block))))
+            starts = starts_ok[starts]
             idx = (starts[:, :, None] + np.arange(block)[None, None, :]).reshape(n_sims, -1)[:, :n]
             idx = np.minimum(idx, n - 1)
         else:
@@ -57,26 +80,50 @@ def _streaks(x: np.ndarray) -> np.ndarray:
 
 
 def simulate(pnl, capital: float, n_sims=10_000, method="shuffle", seed=42, block=5,
-             skip_pct=0.0, haircut_pct=0.0, ruin_usd=None, keep_paths=200) -> dict:
+             skip_pct=0.0, haircut_pct=0.0, ruin_usd=None, keep_paths=200, segments=None) -> dict:
+    """segments (daily only): lengths of the continuous runs of days that make up `pnl`; blocks stay inside one."""
     pnl = np.asarray(pnl, dtype=float)
+    if not np.all(np.isfinite(pnl)):
+        raise ValueError("every P&L value must be a finite number")
+    if not (isinstance(n_sims, (int, np.integer)) and n_sims >= 1):
+        raise ValueError(f"number of simulations must be a whole number >= 1, got {n_sims}")
+    if not (np.isfinite(capital) and capital > 0):
+        raise ValueError(f"starting capital must be a positive number, got {capital}")
+    for name, v in (("skip", skip_pct), ("haircut", haircut_pct)):
+        if not (np.isfinite(v) and 0 <= v <= 100):
+            raise ValueError(f"{name} percentage must be between 0 and 100, got {v}")
+    if ruin_usd is not None and not (np.isfinite(ruin_usd) and ruin_usd != 0):
+        raise ValueError(f"loss limit must be a non-zero number, got {ruin_usd}")
     if method == "daily" and skip_pct:
         raise ValueError("--skip removes individual trades; in daily mode it would delete whole days. "
                          "Use --method bootstrap or shuffle with --skip.")
     if len(pnl) < 2:
         raise ValueError("need at least 2 trades/days for Monte Carlo")
+    if method == "daily":
+        if int(block) != block or block < 1:
+            raise ValueError(f"daily block must be a whole number of days >= 1, got {block}")
+        starts_ok = valid_starts(len(pnl), block, segments)
+        if len(starts_ok) < 2:
+            raise ValueError(f"daily block of {block} days on {len(pnl)} days"
+                             + (f" in segments {list(segments)}" if segments is not None else "")
+                             + f" leaves {len(starts_ok)} possible block start(s): every simulation would be the same "
+                               f"path. Use a shorter block or a longer history.")
+    else:
+        starts_ok = None
     rng = np.random.default_rng(seed)
     finals, maxdd, streak, ruined, sample = [], [], [], [], []
     # Each batch holds ~4 float matrices of batch x n (index, values, cumsum, peak): 1e7 cells keeps
     # the peak around 350 MB whatever the number of trades.
-    batch = max(1, min(n_sims, int(1e7 // max(len(pnl), 1))))
+    batch = max(1, min(n_sims, int(BATCH_CELLS // max(len(pnl), 1))))
     done = 0
     while done < n_sims:
         k = min(batch, n_sims - done)
-        x = _paths(pnl, k, method, rng, block, skip_pct, haircut_pct)
+        x = _paths(pnl, k, method, rng, block, skip_pct, haircut_pct, starts_ok)
         cum = np.cumsum(x, axis=1)
         peak = np.maximum.accumulate(np.maximum(cum, 0.0), axis=1)     # peak includes the starting balance
         dd = (cum - peak).min(axis=1)
-        finals.append(cum[:, -1]); maxdd.append(dd); streak.append(_streaks(x))
+        finals.append(cum[:, -1].copy())          # copy: a view would keep the whole batch matrix alive
+        maxdd.append(dd); streak.append(_streaks(x))
         if ruin_usd:
             ruined.append(dd <= -abs(ruin_usd))
         if len(sample) < keep_paths:
@@ -89,6 +136,8 @@ def simulate(pnl, capital: float, n_sims=10_000, method="shuffle", seed=42, bloc
     out = {
         "method": method, "simulations": int(n_sims), "items": int(len(pnl)), "capital": capital,
         "skip_pct": skip_pct, "haircut_pct": haircut_pct,
+        **({"block_days": int(block), "distinct_block_starts": int(len(starts_ok)),
+            "segments": [int(x) for x in segments] if segments is not None else [int(len(pnl))]} if method == "daily" else {}),
         "actual_final_pnl": float(actual_cum[-1]), "actual_max_drawdown_usd": actual_dd,
         "final_pnl_pct": {p: float(np.percentile(finals, p)) for p in PCTS},
         "max_drawdown_usd_pct": {p: float(np.percentile(maxdd, 100 - p)) for p in PCTS},   # p = "p% of runs are better"
@@ -115,6 +164,7 @@ def report(mc: dict, out: Path, title: str) -> dict:
     tab.index = [f"{p}th pct" for p in tab.index]
     lines = [f"MONTE CARLO: {title}", "",
              f"method {mc['method']}, {mc['simulations']:,} simulations of {mc['items']:,} {'days' if mc['method'] == 'daily' else 'trades'}"
+             + (f", blocks of {mc['block_days']} days ({mc['distinct_block_starts']:,} different blocks)" if "block_days" in mc else "")
              + (f", {mc['skip_pct']}% trades skipped" if mc["skip_pct"] else "") + (f", winners cut {mc['haircut_pct']}%" if mc["haircut_pct"] else ""),
              f"backtest actual: final P&L {mc['actual_final_pnl']:,.0f}, max drawdown {mc['actual_max_drawdown_usd']:,.0f}", "",
              "Distribution (for drawdown, the 95th pct row = only 5% of simulations were WORSE):", tab.round(1).to_string(), "",

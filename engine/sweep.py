@@ -82,13 +82,25 @@ def _py(v):
     return v.item() if hasattr(v, "item") else v
 
 
-def report(df: pd.DataFrame, grid: dict, out: Path, objective: str, title: str) -> dict:
+UNDEFINED_REASON = {"profit_factor": "no losing trades (profit factor is infinite)",
+                    "return_dd": "no drawdown (return / drawdown is undefined)",
+                    "sharpe": "no variation in daily P&L (Sharpe is undefined)"}
+
+
+def report(df: pd.DataFrame, grid: dict, out: Path, objective: str, title: str, min_trades: int | None = None) -> dict:
+    """`with_enough_trades` counts settings that reached `min_trades`; `scored` those that also have a defined
+    score. A setting with enough trades but an undefined score (e.g. profit factor with no losing trade) is
+    left out of the ranking and counted in `excluded_undefined_score`."""
     out.mkdir(parents=True, exist_ok=True)
     df.sort_values("score", ascending=False).to_csv(out / "sweep_results.csv", index=False)
     valid = df[df.score.notna()]
+    enough = df[df.trades >= min_trades] if min_trades is not None and "trades" in df else valid
+    undefined = enough[enough.score.isna()]
     best, plat = pick(df, grid, "best"), pick(df, grid, "plateau")
-    info = {"objective": objective, "combinations": len(df), "with_enough_trades": int(len(valid)),
-            "profitable_pct": round(float((valid.net_pnl > 0).mean() * 100), 1) if len(valid) else None,
+    info = {"objective": objective, "combinations": len(df), "with_enough_trades": int(len(enough)),
+            "scored": int(len(valid)), "excluded_undefined_score": int(len(undefined)),
+            "excluded_reason": UNDEFINED_REASON.get(objective, "undefined score") if len(undefined) else None,
+            "profitable_pct": round(float((enough.net_pnl > 0).mean() * 100), 1) if len(enough) else None,
             "best": best, "best_score": _py(valid.score.max()) if len(valid) else None,
             "plateau_choice": plat, "plateau_choice_on_grid_edge": on_edge(plat, grid),
             "plateau_choice_score": _py(df.loc[df.plateau_score.idxmax(), "plateau_score"]) if df.plateau_score.notna().any() else None,
