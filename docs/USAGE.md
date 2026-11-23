@@ -7,6 +7,9 @@ BACKTESTING/
   DATA_REPORT.md      what's in DATA/, its quality, and the quirks to know about
   run.py              command line: run a strategy on one or more markets
   robust.py           parameter test, walk-forward, Monte Carlo, stress test
+  photo_study.py      runs every photo strategy through all of the above
+  timeframe_study.py  the same, on 5-min, 15-min, 1-hour, 4-hour and daily bars (TIMEFRAME_STUDY_RESULTS.md)
+  STRATEGY_CATALOG.md the 53 strategy photos: what each says and whether it can be tested
   REVIEW_GUIDE.md     for code reviewers: invariants, tests, deliberate choices
   engine/             the engine (data loading, fills, costs, metrics, reports)
   strategies/         your strategies (orb.py and sma_cross.py are examples)
@@ -36,6 +39,7 @@ cd /Volumes/T9/BACKTESTING
 | `--set k=v ...` | override strategy parameters |
 | `--commission / --slippage / --spread` | override default costs. Defaults are in `engine/instruments.py`; edit them to match your broker. |
 | `--data NAS100_RTH` | NAS100 with complete 09:30–16:00 days only |
+| `--force` | publish even if the look-ahead check fails (by default nothing is saved; with `--force` the failure is recorded in the report) |
 
 ## Robustness testing (`robust.py`)
 
@@ -67,6 +71,42 @@ Every command runs the look-ahead check first and stops if it fails.
 
 For reviewers: see **REVIEW_GUIDE.md** (invariants, where they're tested, deliberate choices).
 
+## The photo strategies (`strategies/photos/`, `photo_study.py`)
+The 13 testable strategies from the photos (A1–A13) and the gold futures-vs-spot pair (B1) are in `strategies/photos/`. Each file's header gives the photo it came from, the rules, and any assumption that had to be made. `STRATEGY_CATALOG.md` lists all 53 photos, including the ideas that can't be tested with this data.
+
+```bash
+~/.venvs/t9-backtesting/bin/python photo_study.py                  # every strategy x market x session (resumes if interrupted)
+~/.venvs/t9-backtesting/bin/python photo_study.py --only a01 b01   # some strategies
+```
+
+For each run the study does three things:
+1. A full-history backtest with the photo's own rules.
+2. The full robustness pipeline, with each strategy's own parameter ranges (`GRID`).
+3. A buy-and-hold comparison over the same periods.
+
+Results go to `results/PHOTO_STUDY/`: `PHOTO_STUDY_REPORT.md`, `study_rows.csv`, and one folder per run.
+
+### Other bar sizes (`timeframe_study.py`)
+```bash
+~/.venvs/t9-backtesting/bin/python timeframe_study.py                       # every strategy on 5m/15m/1h/4h/daily (resumes)
+~/.venvs/t9-backtesting/bin/python timeframe_study.py --only a01 --tfs 60   # one strategy, 1-hour bars
+~/.venvs/t9-backtesting/bin/python tools/timeframe_report.py > results/TIMEFRAME_STUDY/tables.md
+~/.venvs/t9-backtesting/bin/python tools/timeframe_costs.py > results/TIMEFRAME_STUDY/costs.md          # avg trade before/after costs
+~/.venvs/t9-backtesting/bin/python tools/timeframe_portfolio.py > results/TIMEFRAME_STUDY/portfolio.md  # robust runs traded together
+~/.venvs/t9-backtesting/bin/python tools/write_timeframe_report.py       # TIMEFRAME_STUDY_RESULTS.md from the tables above
+~/.venvs/t9-backtesting/bin/python timeframe_study.py --keys a05_zscore_mean_reversion:MGC:rth:15   # re-run exact configurations
+~/.venvs/t9-backtesting/bin/python tools/recheck_lookahead.py --rows results/TIMEFRAME_STUDY/rows.csv --out <file.csv>  # gate only
+~/.venvs/t9-backtesting/bin/python tools/recheck_efficiency.py results/TIMEFRAME_STUDY/rows.csv  # efficiency rule on saved folds
+```
+Lengths stay in bars (RSI(3) on 5-minute bars = three 5-minute bars). Thresholds a strategy declares as a % of price
+(`PRICE_PCT`: A1, A2, A11) are scaled by the square root of the bar size (1% on daily cash-session bars = 0.11% on
+5-minute bars). A8, A9 and A10 decide once per week or month on fixed dates and run on daily bars only. Results:
+`results/TIMEFRAME_STUDY/rows.csv`, one folder per run under `results/TIMEFRAME_STUDY/<bars>/`.
+
+Other options:
+- **`--session rth`** (in `run.py`, `robust.py`): New York cash-session bars only: exchange trading days, 09:30 to the close (13:00 on half days). Daily strategies are run both ways, and never make decisions on holiday sessions.
+- **Pairs:** a strategy with `ENGINE = "pairs"` trades two legs (`engine/pairs.py`): futures leg with commission and slippage, XAUUSD leg at bid/ask, both filled at the next open. Use it with `robust.py`.
+
 ## How fills work (and why results aren't flattering)
 - A strategy decides at a bar's **close**. Its orders fill from the **next** bar. It can't trade on a price it hasn't seen.
 - **Inside each bar, things happen in time order:**
@@ -86,7 +126,7 @@ For reviewers: see **REVIEW_GUIDE.md** (invariants, where they're tested, delibe
   - Futures trade at the traded price plus commission and slippage.
 - **Futures rolls:** prices are back-adjusted with the roll spread measured at the moment of the switch, and a held position pays the cost of rolling. Details are in `cache/*_rolls.csv`. Unadjusted prices are in the `raw_o/h/l/c` columns.
 - **Drawdown** walks every bar in time order (open, worst price, close) and measures each low from the peak before it. If a target is hit inside a bar, that bar's adverse move is assumed to have come first (pessimistic).
-- **Resampled futures bars** are split at a contract switch, so on roll days there's one shorter extra bar and the roll is charged at the exact switch time.
+- **Resampled futures bars** stay one bar per period. A contract switch inside a bar is flagged, and its roll cost is charged if a position is held after that bar's open.
 - **Look-ahead check:** every run checks that indicators and trade decisions don't change when future data is removed. It also replays the strategy with data that errors if a later bar is read. `robust.py` checks every parameter set it will test. A strategy's `prepare()` may only add columns; changing prices is refused.
 
 ## Writing a strategy

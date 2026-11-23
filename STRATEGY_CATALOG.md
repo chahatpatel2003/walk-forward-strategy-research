@@ -2,7 +2,7 @@
 
 Read 2026-11-22. `IMG_2695 copy.jpeg` is an exact duplicate of `IMG_2695.jpg`.
 For each idea: what the photo says, what is **missing or assumed** (marked ⚠), and whether our data can test it.
-Nothing here has been coded or backtested yet. **Rules marked ⚠ need your confirmation.**
+**Coded:** A1–A13 and B1 are in `strategies/photos/` (file names start with the same code, e.g. `a01_...`, `b01_...`). Assumptions marked ⚠ are used as starting points, and the parameter test explores ranges around them. Results: `results/PHOTO_STUDY/PHOTO_STUDY_REPORT.md`.
 
 The performance numbers in the photos (e.g. "PF 3.94, 78.6% win rate") are the creators' claims,
 mostly on QQQ/SPY daily since 1999 with **no costs**. We'll measure our own.
