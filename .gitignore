@@ -1,0 +1,13 @@
+# Generated outputs (rebuildable; can be large)
+cache/
+results/
+
+# macOS metadata files (exFAT creates ._ companions)
+._*
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
