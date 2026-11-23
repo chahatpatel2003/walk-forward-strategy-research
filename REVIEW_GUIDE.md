@@ -70,3 +70,12 @@ Please give: the file and line, a concrete input where the output is wrong, and 
 
 ## Files starting with `._`
 macOS creates `._name` companion files on exFAT drives. They hold Finder metadata, not code or data, and can be ignored or deleted.
+
+## Version history (git)
+This folder is a git repository, so every change is recorded and can be undone.
+- Before changing code: `git status` should be clean. Check `git log --oneline` to see recent changes.
+- Make one change at a time, run the tests, then save it with a clear message:
+  `git add -A && git commit -m "fix: <what and why>"`
+- Never commit with failing tests. `cache/` and `results/` are not tracked (they're regenerated).
+- To see what changed: `git diff` (not yet saved) or `git show <id>` (a saved change).
+- To undo a saved change: `git revert <id>`. This adds a new change that reverses it; history is kept.
